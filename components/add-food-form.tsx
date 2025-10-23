@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
-import { BarcodeScanner } from "./barcode-scanner";
+import { BarcodeScannerComponent } from "./barcode-scanner";
 
 interface FoodData {
     name: string;
@@ -271,7 +271,7 @@ export function AddFoodForm({ onFoodAdded }: AddFoodFormProps) {
                     </DialogContent>
                 </Dialog>
 
-                <BarcodeScanner onFoodDetected={handleBarcodeDetected} />
+                <BarcodeScannerComponent onFoodDetected={handleBarcodeDetected} />
             </div>
         </>
     );
