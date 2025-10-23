@@ -8,8 +8,8 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
+  id            String     @id @default(uuid())
+  email         String     @unique
   name          String?
   emailVerified Boolean
   image         String?
@@ -18,6 +18,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   Weight        Weight[]
+  Exercise      Exercise[]
 
   @@map("user")
 }
@@ -80,4 +81,18 @@ model Weight {
 
   @@index([userId, date])
   @@map("weight")
+}
+
+model Exercise {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  muscleGroup String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, muscleGroup])
+  @@map("exercise")
 }
