@@ -8,17 +8,18 @@ datasource db {
 }
 
 model User {
-  id            String     @id @default(uuid())
-  email         String     @unique
-  name          String?
-  emailVerified Boolean
-  image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
-  sessions      Session[]
-  accounts      Account[]
-  Weight        Weight[]
-  Exercise      Exercise[]
+  id              String            @id @default(uuid())
+  email           String            @unique
+  name            String?
+  emailVerified   Boolean
+  image           String?
+  createdAt       DateTime
+  updatedAt       DateTime
+  sessions        Session[]
+  accounts        Account[]
+  Weight          Weight[]
+  Exercise        Exercise[]
+  WorkoutTemplate WorkoutTemplate[]
 
   @@map("user")
 }
@@ -84,15 +85,47 @@ model Weight {
 }
 
 model Exercise {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  muscleGroup String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String             @id @default(uuid())
+  userId           String
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  muscleGroup      String
+  description      String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  TemplateExercise TemplateExercise[]
 
   @@index([userId, muscleGroup])
   @@map("exercise")
+}
+
+model WorkoutTemplate {
+  id          String             @id @default(uuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  exercises   TemplateExercise[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([userId])
+  @@map("workout_template")
+}
+
+model TemplateExercise {
+  id         String          @id @default(uuid())
+  templateId String
+  template   WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  orderIndex Int
+  sets       Int             @default(3)
+  reps       Int             @default(10)
+  notes      String?
+  createdAt  DateTime        @default(now())
+
+  @@index([templateId])
+  @@index([exerciseId])
+  @@map("template_exercise")
 }

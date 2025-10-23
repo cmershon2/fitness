@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Dumbbell, LayoutDashboard, Scale } from "lucide-react"
+import { ClipboardList, Dumbbell, LayoutDashboard, Scale } from "lucide-react"
 import {
    Sidebar,
    SidebarContent,
@@ -59,6 +59,22 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                            <Dumbbell className="h-5 w-5" />
                         </div>
                         <span className="text-sm font-medium">Exercises</span>
+                     </Link>
+                  </SidebarMenuButton>
+               </SidebarMenuItem>
+               <SidebarMenuItem>
+                  <SidebarMenuButton
+                     isActive={pathname.startsWith("/dashboard/templates")}
+                     size="lg"
+                  >
+                     <Link
+                        href="/dashboard/templates"
+                        className={`${pathname.startsWith("/dashboard/templates") ? "text-foreground" : "text-primary"} flex items-center gap-3`}
+                     >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
+                           <ClipboardList className="h-5 w-5" />
+                        </div>
+                        <span className="text-sm font-medium">Templates</span>
                      </Link>
                   </SidebarMenuButton>
                </SidebarMenuItem>
