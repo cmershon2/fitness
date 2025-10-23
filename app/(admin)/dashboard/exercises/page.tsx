@@ -15,8 +15,16 @@ import ExerciseCard from "@/components/exercise-card";
 import ExerciseDialog from "@/components/exercise-dialog";
 import { MUSCLE_GROUPS } from "@/lib/constants";
 
+// Define the Exercise interface
+interface Exercise {
+    id: string;
+    name: string;
+    muscleGroup: string;
+    description?: string;
+}
+
 export default function ExercisesPage() {
-    const [exercises, setExercises] = useState([]);
+    const [exercises, setExercises] = useState<Exercise[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
     const [search, setSearch] = useState("");

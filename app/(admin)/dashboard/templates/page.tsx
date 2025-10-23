@@ -6,8 +6,30 @@ import { Plus } from "lucide-react";
 import TemplateCard from "@/components/template-card";
 import TemplateDialog from "@/components/template-dialog";
 
+// Define the Template-related interfaces
+interface TemplateExercise {
+    id: string;
+    exerciseId: string;
+    orderIndex: number;
+    sets: number;
+    reps: number;
+    notes?: string;
+    exercise: {
+        id: string;
+        name: string;
+        muscleGroup: string;
+    };
+}
+
+interface Template {
+    id: string;
+    name: string;
+    description?: string;
+    exercises: TemplateExercise[];
+}
+
 export default function TemplatesPage() {
-    const [templates, setTemplates] = useState([]);
+    const [templates, setTemplates] = useState<Template[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showDialog, setShowDialog] = useState(false);
 

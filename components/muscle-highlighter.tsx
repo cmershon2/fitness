@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Model from 'react-body-highlighter';
+import type { Muscle } from 'react-body-highlighter';
 
 interface MuscleHighlighterProps {
     muscles: string[];
@@ -29,9 +30,10 @@ export default function MuscleHighlighter({
     }
 
     // Create data array for the highlighter
+    // Type assertion needed because library expects Muscle type
     const data = muscles.map((muscle) => ({
         name: muscle,
-        muscles: [muscle],
+        muscles: [muscle as Muscle],
     }));
 
     // If dual mode, render both anterior and posterior side-by-side
