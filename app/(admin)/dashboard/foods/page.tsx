@@ -76,6 +76,7 @@ export default function FoodsPage() {
             setFilteredFoods(data);
         } catch (error) {
             toast.error("Failed to load foods");
+            console.log(error);
         } finally {
             setIsLoading(false);
         }
@@ -95,7 +96,8 @@ export default function FoodsPage() {
 
             fetchFoods();
         } catch (error) {
-            toast.error("Failed to delete food")
+            toast.error("Failed to delete food");
+            console.log(error);
         }
     };
 
@@ -126,6 +128,7 @@ export default function FoodsPage() {
             fetchFoods();
         } catch (error) {
             toast.error("Failed to update food");
+            console.log(error);
         }
     };
 

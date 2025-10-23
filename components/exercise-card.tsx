@@ -129,7 +129,7 @@ export default function ExerciseCard({ exercise, onUpdate }: ExerciseCardProps) 
                     <DialogHeader>
                         <DialogTitle>Delete Exercise</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete "{exercise.name}"? This action
+                            Are you sure you want to delete &quot;{exercise.name}&quot;? This action
                             cannot be undone.
                         </DialogDescription>
                     </DialogHeader>

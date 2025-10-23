@@ -61,6 +61,7 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
             setWorkout(data);
         } catch (error) {
             toast.error("Failed to load workout");
+            console.error(error);
         } finally {
             setIsLoading(false);
         }
@@ -84,6 +85,7 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
 
         } catch (error) {
             toast.error("Failed to update set");
+            console.error(error);
         } finally {
             setIsSaving(false);
         }
@@ -109,6 +111,7 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
             await fetchWorkout();
         } catch (error) {
             toast.error("Failed to complete workout");
+            console.error(error);
         } finally {
             setIsCompleting(false);
         }

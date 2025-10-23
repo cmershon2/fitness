@@ -1,8 +1,5 @@
 "use client"
 
-import { Bell, Search } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import type { User } from "@/lib/types"
 import { Separator } from "./ui/separator"

@@ -70,6 +70,7 @@ export default function WorkoutsPage() {
             }
         } catch (error) {
             toast.error("Failed to load workouts");
+            console.log(error);
         } finally {
             setIsLoading(false);
         }
@@ -89,8 +90,8 @@ export default function WorkoutsPage() {
 
             fetchData();
         } catch (error) {
-
-            toast.error("Failed to delete workout")
+            toast.error("Failed to delete workout");
+            console.log(error);
         }
     };
 

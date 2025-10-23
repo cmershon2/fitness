@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 
 // GET all workout templates for the current user
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),

@@ -85,6 +85,7 @@ export function ScheduleWorkoutDialog({
             }
         } catch (error) {
             toast.error("Failed to schedule workout. Please try again.");
+            console.error(error);
         } finally {
             setIsLoading(false);
         }
