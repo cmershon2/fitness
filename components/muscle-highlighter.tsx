@@ -5,7 +5,7 @@ import Model from 'react-body-highlighter';
 
 interface MuscleHighlighterProps {
     muscles: string[];
-    side?: "anterior" | "posterior";
+    side?: "anterior" | "posterior" | "dual";
     className?: string;
 }
 
@@ -34,13 +34,59 @@ export default function MuscleHighlighter({
         muscles: [muscle],
     }));
 
+    // If dual mode, render both anterior and posterior side-by-side
+    if (side === "dual") {
+        return (
+            <div className={`flex gap-2 items-center justify-center ${className}`}>
+                {/* Front View */}
+                <div className="flex-1 flex flex-col items-center">
+                    <div className="w-full max-h-full overflow-hidden">
+                        <Model
+                            data={data}
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                padding: "0",
+                            }}
+                            type="anterior"
+                            highlightedColors={["#ef4444"]}
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Front</p>
+                </div>
+
+                {/* Back View */}
+                <div className="flex-1 flex flex-col items-center">
+                    <div className="w-full max-h-full overflow-hidden">
+                        <Model
+                            data={data}
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                padding: "0",
+                            }}
+                            type="posterior"
+                            highlightedColors={["#ef4444"]}
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Back</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Single view mode
     return (
-        <div className={className}>
+        <div className={`overflow-hidden ${className}`}>
             <Model
                 data={data}
-                style={{ width: "100%", padding: "0" }}
+                style={{
+                    width: "100%",
+                    height: "100%",
+                    padding: "0",
+                }}
                 type={side}
-                highlightedColors={["#ef4444"]} // Red color for highlighted muscles
+                highlightedColors={["#ef4444"]}
             />
         </div>
     );

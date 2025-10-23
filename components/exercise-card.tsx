@@ -85,12 +85,12 @@ export default function ExerciseCard({ exercise, onUpdate }: ExerciseCardProps) 
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {/* Body Highlighter Preview */}
+                    {/* Body Highlighter Preview - Dual View */}
                     <div className="flex justify-center">
                         <MuscleHighlighter
                             muscles={muscles}
-                            side="anterior"
-                            className="h-48"
+                            side="dual"
+                            className="h-96 w-full"
                         />
                     </div>
 
