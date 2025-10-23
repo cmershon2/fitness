@@ -1,7 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { ClipboardList, Dumbbell, LayoutDashboard, Scale } from "lucide-react"
+import {
+   ClipboardList,
+   Dumbbell,
+   LayoutDashboard,
+   Scale,
+   Play,
+   Utensils
+} from "lucide-react"
 import {
    Sidebar,
    SidebarContent,
@@ -18,7 +25,7 @@ import { usePathname } from "next/navigation"
 
 export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
    const pathname = usePathname();
-   const isActive = pathname.startsWith("/dashboard")
+
    return (
       <Sidebar collapsible="offcanvas" {...props}>
          <SidebarHeader className="flex items-center">
@@ -26,19 +33,34 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
          </SidebarHeader>
          <SidebarContent>
             <SidebarMenu className="px-2 py-4">
+               {/* Dashboard */}
                <SidebarMenuItem>
-                  <SidebarMenuButton isActive={isActive} size="lg">
-                     <Link href="/dashboard" className={`${isActive ? "text-foreground" : "text-primary"} flex items-center gap-3`}>
+                  <SidebarMenuButton
+                     isActive={pathname === "/dashboard"}
+                     size="lg"
+                  >
+                     <Link
+                        href="/dashboard"
+                        className={`${pathname === "/dashboard" ? "text-foreground" : "text-primary"} flex items-center gap-3`}
+                     >
                         <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
                            <LayoutDashboard className="h-5 w-5" />
                         </div>
-                        <span className={`text-sm font-medium`}>Dashboard</span>
+                        <span className="text-sm font-medium">Dashboard</span>
                      </Link>
                   </SidebarMenuButton>
                </SidebarMenuItem>
+
+               {/* Weight */}
                <SidebarMenuItem>
-                  <SidebarMenuButton isActive={pathname.startsWith("/dashboard/weight")} size="lg">
-                     <Link href="/dashboard/weight" className={`${isActive ? "text-foreground" : "text-primary"} flex items-center gap-3`}>
+                  <SidebarMenuButton
+                     isActive={pathname.startsWith("/dashboard/weight")}
+                     size="lg"
+                  >
+                     <Link
+                        href="/dashboard/weight"
+                        className={`${pathname.startsWith("/dashboard/weight") ? "text-foreground" : "text-primary"} flex items-center gap-3`}
+                     >
                         <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
                            <Scale className="h-5 w-5" />
                         </div>
@@ -46,6 +68,8 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                      </Link>
                   </SidebarMenuButton>
                </SidebarMenuItem>
+
+               {/* Exercises */}
                <SidebarMenuItem>
                   <SidebarMenuButton
                      isActive={pathname.startsWith("/dashboard/exercises")}
@@ -62,6 +86,8 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                      </Link>
                   </SidebarMenuButton>
                </SidebarMenuItem>
+
+               {/* Templates */}
                <SidebarMenuItem>
                   <SidebarMenuButton
                      isActive={pathname.startsWith("/dashboard/templates")}
@@ -75,6 +101,42 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                            <ClipboardList className="h-5 w-5" />
                         </div>
                         <span className="text-sm font-medium">Templates</span>
+                     </Link>
+                  </SidebarMenuButton>
+               </SidebarMenuItem>
+
+               {/* Workouts - NEW for Sprint 3 */}
+               <SidebarMenuItem>
+                  <SidebarMenuButton
+                     isActive={pathname.startsWith("/dashboard/workouts")}
+                     size="lg"
+                  >
+                     <Link
+                        href="/dashboard/workouts"
+                        className={`${pathname.startsWith("/dashboard/workouts") ? "text-foreground" : "text-primary"} flex items-center gap-3`}
+                     >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
+                           <Play className="h-5 w-5" />
+                        </div>
+                        <span className="text-sm font-medium">Workouts</span>
+                     </Link>
+                  </SidebarMenuButton>
+               </SidebarMenuItem>
+
+               {/* Foods - NEW for Sprint 3 */}
+               <SidebarMenuItem>
+                  <SidebarMenuButton
+                     isActive={pathname.startsWith("/dashboard/foods")}
+                     size="lg"
+                  >
+                     <Link
+                        href="/dashboard/foods"
+                        className={`${pathname.startsWith("/dashboard/foods") ? "text-foreground" : "text-primary"} flex items-center gap-3`}
+                     >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
+                           <Utensils className="h-5 w-5" />
+                        </div>
+                        <span className="text-sm font-medium">Foods</span>
                      </Link>
                   </SidebarMenuButton>
                </SidebarMenuItem>

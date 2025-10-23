@@ -20,6 +20,8 @@ model User {
   Weight          Weight[]
   Exercise        Exercise[]
   WorkoutTemplate WorkoutTemplate[]
+  WorkoutInstance WorkoutInstance[]
+  Food            Food[]
 
   @@map("user")
 }
@@ -128,4 +130,79 @@ model TemplateExercise {
   @@index([templateId])
   @@index([exerciseId])
   @@map("template_exercise")
+}
+
+model WorkoutInstance {
+  id            String             @id @default(uuid())
+  userId        String
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId    String? // Reference only, for tracking origin
+  name          String // Snapshot from template
+  description   String?
+  scheduledDate DateTime
+  completedDate DateTime?
+  status        String             @default("scheduled") // "scheduled", "in-progress", "completed"
+  notes         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  exercises     InstanceExercise[]
+
+  @@index([userId, scheduledDate])
+  @@index([userId, status])
+  @@map("workout_instance")
+}
+
+model InstanceExercise {
+  id                String          @id @default(uuid())
+  workoutInstanceId String
+  workoutInstance   WorkoutInstance @relation(fields: [workoutInstanceId], references: [id], onDelete: Cascade)
+  exerciseId        String? // Reference only
+  exerciseName      String // Snapshot from exercise
+  muscleGroup       String? // Optional snapshot
+  orderIndex        Int
+  notes             String?
+  sets              ExerciseSet[]
+  createdAt         DateTime        @default(now())
+
+  @@index([workoutInstanceId])
+  @@map("instance_exercise")
+}
+
+model ExerciseSet {
+  id                 String           @id @default(uuid())
+  instanceExerciseId String
+  instanceExercise   InstanceExercise @relation(fields: [instanceExerciseId], references: [id], onDelete: Cascade)
+  setNumber          Int
+  targetReps         Int
+  actualReps         Int?
+  weight             Float?
+  unit               String           @default("kg") // "kg" or "lbs"
+  completed          Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([instanceExerciseId])
+  @@map("exercise_set")
+}
+
+model Food {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  brand       String?
+  barcode     String?
+  calories    Int
+  protein     Float?
+  carbs       Float?
+  fat         Float?
+  servingSize String?
+  servingUnit String?
+  source      String   @default("manual") // "manual", "barcode", "api"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([barcode])
+  @@map("food")
 }
