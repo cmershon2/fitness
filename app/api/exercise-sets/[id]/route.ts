@@ -7,7 +7,7 @@ import prisma from "@/lib/prisma";
 // PATCH update an exercise set (log actual reps and weight)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -23,7 +23,7 @@ export async function PATCH(
 
     // Verify ownership through the chain: set -> instance exercise -> workout instance -> user
     const existingSet = await prisma.exerciseSet.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         instanceExercise: {
           include: {
@@ -54,7 +54,7 @@ export async function PATCH(
     if (completed !== undefined) updateData.completed = completed;
 
     const updated = await prisma.exerciseSet.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: updateData,
     });
 

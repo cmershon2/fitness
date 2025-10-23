@@ -7,7 +7,7 @@ import prisma from "@/lib/prisma";
 // GET a specific food item
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -20,7 +20,7 @@ export async function GET(
 
     const food = await prisma.food.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
     });
@@ -42,7 +42,7 @@ export async function GET(
 // PATCH update a food item
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -69,7 +69,7 @@ export async function PATCH(
     // Verify ownership
     const existing = await prisma.food.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
     });
@@ -95,7 +95,7 @@ export async function PATCH(
       updateData.servingUnit = servingUnit?.trim() || null;
 
     const updated = await prisma.food.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: updateData,
     });
 
@@ -112,7 +112,7 @@ export async function PATCH(
 // DELETE a food item
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -126,7 +126,7 @@ export async function DELETE(
     // Verify ownership before deleting
     const existing = await prisma.food.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
     });
@@ -136,7 +136,7 @@ export async function DELETE(
     }
 
     await prisma.food.delete({
-      where: { id: params.id },
+      where: { id: (await params).id },
     });
 
     return NextResponse.json({ message: "Food deleted successfully" });

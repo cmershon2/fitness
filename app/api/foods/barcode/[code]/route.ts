@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 // GET food data from Open Food Facts API by barcode
 export async function GET(
   request: Request,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const barcode = params.code;
+    const barcode = (await params).code;
 
     if (!barcode || barcode.length < 8) {
       return NextResponse.json({ error: "Invalid barcode" }, { status: 400 });

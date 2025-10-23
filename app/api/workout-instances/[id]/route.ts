@@ -7,7 +7,7 @@ import prisma from "@/lib/prisma";
 // GET a specific workout instance
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -20,7 +20,7 @@ export async function GET(
 
     const instance = await prisma.workoutInstance.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
       include: {
@@ -55,7 +55,7 @@ export async function GET(
 // PATCH update workout instance (e.g., mark as complete, change status)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -72,7 +72,7 @@ export async function PATCH(
     // Verify ownership
     const existing = await prisma.workoutInstance.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
     });
@@ -97,7 +97,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.workoutInstance.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: updateData,
       include: {
         exercises: {
@@ -124,7 +124,7 @@ export async function PATCH(
 // DELETE a workout instance
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -138,7 +138,7 @@ export async function DELETE(
     // Verify ownership before deleting
     const existing = await prisma.workoutInstance.findUnique({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
     });
@@ -151,7 +151,7 @@ export async function DELETE(
     }
 
     await prisma.workoutInstance.delete({
-      where: { id: params.id },
+      where: { id: (await params).id },
     });
 
     return NextResponse.json({
