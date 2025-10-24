@@ -119,6 +119,7 @@ export default function WeightChart({ data }: WeightChartProps) {
                                 {new Date(d.date).toLocaleDateString("en-US", {
                                     month: "short",
                                     day: "numeric",
+                                    timeZone: "UTC",
                                 })}
                             </div>
                         </div>
