@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Cloud } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ExerciseSet {
@@ -46,11 +46,18 @@ interface WorkoutExecutionProps {
 export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
     const [workout, setWorkout] = useState<WorkoutInstance | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+    const [savingSetIds, setSavingSetIds] = useState<Set<string>>(new Set());
     const [isCompleting, setIsCompleting] = useState(false);
+
+    const pendingUpdates = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
     useEffect(() => {
         fetchWorkout();
+
+        return () => {
+            pendingUpdates.current.forEach(timer => clearTimeout(timer));
+            pendingUpdates.current.clear();
+        };
     }, [workoutId]);
 
     const fetchWorkout = async () => {
@@ -67,8 +74,92 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
         }
     };
 
-    const updateSet = async (setId: string, data: Partial<ExerciseSet>) => {
-        setIsSaving(true);
+    const updateSetOptimistically = useCallback((setId: string, data: Partial<ExerciseSet>) => {
+        setWorkout(prev => {
+            if (!prev) return prev;
+
+            return {
+                ...prev,
+                exercises: prev.exercises.map(exercise => ({
+                    ...exercise,
+                    sets: exercise.sets.map(set =>
+                        set.id === setId
+                            ? { ...set, ...data }
+                            : set
+                    )
+                }))
+            };
+        });
+    }, []);
+
+    const updateSetDebounced = useCallback((setId: string, data: Partial<ExerciseSet>) => {
+        const existingTimer = pendingUpdates.current.get(setId);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        const timer = setTimeout(async () => {
+            setSavingSetIds(prev => new Set(prev).add(setId));
+
+            try {
+                const response = await fetch(`/api/exercise-sets/${setId}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to update set");
+                }
+
+                const updatedSet = await response.json();
+
+                setWorkout(prev => {
+                    if (!prev) return prev;
+
+                    return {
+                        ...prev,
+                        exercises: prev.exercises.map(exercise => ({
+                            ...exercise,
+                            sets: exercise.sets.map(set =>
+                                set.id === setId
+                                    ? updatedSet
+                                    : set
+                            )
+                        }))
+                    };
+                });
+
+            } catch (error) {
+                toast.error("Failed to save changes");
+                console.error(error);
+                await fetchWorkout();
+            } finally {
+                setSavingSetIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(setId);
+                    return next;
+                });
+                pendingUpdates.current.delete(setId);
+            }
+        }, 1500);
+
+        pendingUpdates.current.set(setId, timer);
+    }, []);
+
+    const updateSetImmediate = async (setId: string, data: Partial<ExerciseSet>) => {
+        updateSetOptimistically(setId, data);
+
+        const existingTimer = pendingUpdates.current.get(setId);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+            pendingUpdates.current.delete(setId);
+        }
+
+        setSavingSetIds(prev => new Set(prev).add(setId));
+
         try {
             const response = await fetch(`/api/exercise-sets/${setId}`, {
                 method: "PATCH",
@@ -80,18 +171,46 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
 
             if (!response.ok) throw new Error("Failed to update set");
 
-            // Refresh workout data
-            await fetchWorkout();
+            const updatedSet = await response.json();
+
+            setWorkout(prev => {
+                if (!prev) return prev;
+
+                return {
+                    ...prev,
+                    exercises: prev.exercises.map(exercise => ({
+                        ...exercise,
+                        sets: exercise.sets.map(set =>
+                            set.id === setId
+                                ? updatedSet
+                                : set
+                        )
+                    }))
+                };
+            });
 
         } catch (error) {
-            toast.error("Failed to update set");
+            toast.error("Failed to save changes");
             console.error(error);
+            await fetchWorkout();
         } finally {
-            setIsSaving(false);
+            setSavingSetIds(prev => {
+                const next = new Set(prev);
+                next.delete(setId);
+                return next;
+            });
         }
     };
 
     const completeWorkout = async () => {
+        const pendingTimers = Array.from(pendingUpdates.current.keys());
+        if (pendingTimers.length > 0) {
+            toast.info("Saving changes...");
+            pendingUpdates.current.forEach(timer => clearTimeout(timer));
+            pendingUpdates.current.clear();
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
         setIsCompleting(true);
         try {
             const response = await fetch(`/api/workout-instances/${workoutId}`, {
@@ -134,13 +253,14 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
     );
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-4 pb-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">{workout.name}</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-2xl sm:text-3xl font-bold">{workout.name}</h1>
+                    <p className="text-sm text-muted-foreground">
                         {new Date(workout.scheduledDate).toLocaleDateString()}
                     </p>
+                    <p>{workout.description}</p>
                 </div>
                 <Badge
                     variant={
@@ -150,6 +270,7 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                 ? "secondary"
                                 : "outline"
                     }
+                    className="w-fit"
                 >
                     {workout.status}
                 </Badge>
@@ -157,26 +278,39 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
 
             {workout.exercises.map((exercise, exIndex) => (
                 <Card key={exercise.id}>
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                            <span>
+                    <CardHeader className="pb-3">
+                        <div className="flex flex-col gap-2">
+                            <CardTitle className="text-lg sm:text-xl">
                                 {exIndex + 1}. {exercise.exerciseName}
-                            </span>
+                            </CardTitle>
                             {exercise.muscleGroup && (
-                                <Badge variant="outline">{exercise.muscleGroup}</Badge>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {exercise.muscleGroup.split(',').map((muscle, idx) => (
+                                        <Badge
+                                            key={idx}
+                                            variant="outline"
+                                            className="text-xs"
+                                        >
+                                            {muscle.trim()}
+                                        </Badge>
+                                    ))}
+                                </div>
                             )}
-                        </CardTitle>
+                        </div>
                         {exercise.notes && (
-                            <p className="text-sm text-muted-foreground">{exercise.notes}</p>
+                            <p className="text-sm text-muted-foreground mt-2">{exercise.notes}</p>
                         )}
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-2.5">
                         {exercise.sets.map((set) => (
                             <SetRow
                                 key={set.id}
                                 set={set}
-                                onUpdate={(data) => updateSet(set.id, data)}
-                                disabled={workout.status === "completed" || isSaving}
+                                isSaving={savingSetIds.has(set.id)}
+                                onChangeOptimistic={(data) => updateSetOptimistically(set.id, data)}
+                                onChangeDebounced={(data) => updateSetDebounced(set.id, data)}
+                                onChangeImmediate={(data) => updateSetImmediate(set.id, data)}
+                                disabled={workout.status === "completed"}
                             />
                         ))}
                     </CardContent>
@@ -201,59 +335,96 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
 
 interface SetRowProps {
     set: ExerciseSet;
-    onUpdate: (data: Partial<ExerciseSet>) => void;
+    isSaving: boolean;
+    onChangeOptimistic: (data: Partial<ExerciseSet>) => void;
+    onChangeDebounced: (data: Partial<ExerciseSet>) => void;
+    onChangeImmediate: (data: Partial<ExerciseSet>) => void;
     disabled: boolean;
 }
 
-function SetRow({ set, onUpdate, disabled }: SetRowProps) {
+function SetRow({
+    set,
+    isSaving,
+    onChangeOptimistic,
+    onChangeDebounced,
+    onChangeImmediate,
+    disabled
+}: SetRowProps) {
     const [actualReps, setActualReps] = useState(set.actualReps?.toString() || "");
     const [weight, setWeight] = useState(set.weight?.toString() || "");
 
+    useEffect(() => {
+        setActualReps(set.actualReps?.toString() || "");
+        setWeight(set.weight?.toString() || "");
+    }, [set.actualReps, set.weight]);
+
+    const handleRepsChange = (value: string) => {
+        setActualReps(value);
+        const reps = value ? parseInt(value) : null;
+        onChangeOptimistic({ actualReps: reps });
+        onChangeDebounced({ actualReps: reps });
+    };
+
+    const handleWeightChange = (value: string) => {
+        setWeight(value);
+        const weightValue = value ? parseFloat(value) : null;
+        onChangeOptimistic({ weight: weightValue });
+        onChangeDebounced({ weight: weightValue });
+    };
+
+    const handleCompletedChange = (checked: boolean) => {
+        onChangeImmediate({ completed: checked });
+    };
+
     return (
-        <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
-            <div className="flex items-center gap-2 min-w-[80px]">
+        <div className="flex flex-col sm:flex-row gap-2.5 p-3 rounded-lg border bg-muted/50">
+            {/* Mobile: Checkbox + Set number + Saving indicator in a row */}
+            <div className="flex items-center gap-2 sm:min-w-[70px]">
                 <Checkbox
                     checked={set.completed}
-                    onCheckedChange={(checked) =>
-                        onUpdate({ completed: checked as boolean })
-                    }
+                    onCheckedChange={handleCompletedChange}
                     disabled={disabled}
+                    className="h-5 w-5"
                 />
-                <Label className="font-semibold">Set {set.setNumber}</Label>
+                <Label className="font-semibold text-sm">
+                    Set {set.setNumber}
+                </Label>
+                {isSaving && (
+                    <Cloud className="h-3.5 w-3.5 text-muted-foreground animate-pulse ml-auto sm:ml-0" />
+                )}
             </div>
 
-            <div className="flex-1 grid grid-cols-2 gap-3">
-                <div>
-                    <Label className="text-xs text-muted-foreground">
-                        Reps (Target: {set.targetReps})
+            {/* Mobile: Full width inputs in a grid */}
+            <div className="flex-1 grid grid-cols-2 gap-2.5 sm:gap-3">
+                <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground block">
+                        Reps
+                        <span className="text-[10px] ml-1">(Target: {set.targetReps})</span>
                     </Label>
                     <Input
                         type="number"
+                        inputMode="numeric"
                         value={actualReps}
-                        onChange={(e) => setActualReps(e.target.value)}
-                        onBlur={() =>
-                            onUpdate({ actualReps: actualReps ? parseInt(actualReps) : null })
-                        }
+                        onChange={(e) => handleRepsChange(e.target.value)}
                         placeholder={set.targetReps.toString()}
                         disabled={disabled}
-                        className="h-9"
+                        className="h-11 text-base sm:h-10"
                     />
                 </div>
-                <div>
-                    <Label className="text-xs text-muted-foreground">
-                        Weight ({set.unit})
+                <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground block">
+                        Weight
+                        <span className="text-[10px] ml-1">({set.unit})</span>
                     </Label>
                     <Input
                         type="number"
-                        step="0.1"
+                        inputMode="decimal"
+                        step="0.5"
                         value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                        onBlur={() =>
-                            onUpdate({ weight: weight ? parseFloat(weight) : null })
-                        }
+                        onChange={(e) => handleWeightChange(e.target.value)}
                         placeholder="0"
                         disabled={disabled}
-                        className="h-9"
+                        className="h-11 text-base sm:h-10"
                     />
                 </div>
             </div>
