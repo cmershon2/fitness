@@ -7,7 +7,9 @@ import {
    LayoutDashboard,
    Scale,
    Play,
-   Utensils
+   Utensils,
+   Droplets,
+   Carrot
 } from "lucide-react"
 import {
    Sidebar,
@@ -105,7 +107,7 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                   </SidebarMenuButton>
                </SidebarMenuItem>
 
-               {/* Workouts - NEW for Sprint 3 */}
+               {/* Workouts */}
                <SidebarMenuItem>
                   <SidebarMenuButton
                      isActive={pathname.startsWith("/dashboard/workouts")}
@@ -123,7 +125,7 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                   </SidebarMenuButton>
                </SidebarMenuItem>
 
-               {/* Foods - NEW for Sprint 3 */}
+               {/* Foods */}
                <SidebarMenuItem>
                   <SidebarMenuButton
                      isActive={pathname.startsWith("/dashboard/foods")}
@@ -134,9 +136,45 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                         className={`${pathname.startsWith("/dashboard/foods") ? "text-foreground" : "text-primary"} flex items-center gap-3`}
                      >
                         <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-                           <Utensils className="h-5 w-5" />
+                           <Carrot className="h-5 w-5" />
                         </div>
                         <span className="text-sm font-medium">Foods</span>
+                     </Link>
+                  </SidebarMenuButton>
+               </SidebarMenuItem>
+
+               {/* Diet */}
+               <SidebarMenuItem>
+                  <SidebarMenuButton
+                     isActive={pathname.startsWith("/dashboard/diet")}
+                     size="lg"
+                  >
+                     <Link
+                        href="/dashboard/diet"
+                        className={`${pathname.startsWith("/dashboard/diet") ? "text-foreground" : "text-primary"} flex items-center gap-3`}
+                     >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
+                           <Utensils className="h-5 w-5" />
+                        </div>
+                        <span className="text-sm font-medium">Diet</span>
+                     </Link>
+                  </SidebarMenuButton>
+               </SidebarMenuItem>
+
+               {/* Water */}
+               <SidebarMenuItem>
+                  <SidebarMenuButton
+                     isActive={pathname.startsWith("/dashboard/water")}
+                     size="lg"
+                  >
+                     <Link
+                        href="/dashboard/water"
+                        className={`${pathname.startsWith("/dashboard/water") ? "text-foreground" : "text-primary"} flex items-center gap-3`}
+                     >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
+                           <Droplets className="h-5 w-5" />
+                        </div>
+                        <span className="text-sm font-medium">Water</span>
                      </Link>
                   </SidebarMenuButton>
                </SidebarMenuItem>

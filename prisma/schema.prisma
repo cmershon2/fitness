@@ -22,6 +22,9 @@ model User {
   WorkoutTemplate WorkoutTemplate[]
   WorkoutInstance WorkoutInstance[]
   Food            Food[]
+  DietEntry       DietEntry[]
+  WaterEntry      WaterEntry[]
+  UserWaterGoal   UserWaterGoal[]
 
   @@map("user")
 }
@@ -186,9 +189,9 @@ model ExerciseSet {
 }
 
 model Food {
-  id          String   @id @default(uuid())
+  id          String      @id @default(uuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   brand       String?
   barcode     String?
@@ -198,11 +201,55 @@ model Food {
   fat         Float?
   servingSize String?
   servingUnit String?
-  source      String   @default("manual") // "manual", "barcode", "api"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  source      String      @default("manual") // "manual", "barcode", "api"
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  DietEntry   DietEntry[]
 
   @@index([userId])
   @@index([barcode])
   @@map("food")
+}
+
+model DietEntry {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodId       String
+  food         Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  date         DateTime @db.Date
+  mealCategory String // "breakfast", "lunch", "snack", "dinner"
+  servings     Float    @default(1)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([foodId])
+  @@map("diet_entry")
+}
+
+model WaterEntry {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float
+  unit      String   @default("ml") // "ml", "oz", "cups"
+  date      DateTime @db.Date
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+  @@map("water_entry")
+}
+
+model UserWaterGoal {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyGoal Float
+  unit      String   @default("ml") // "ml", "oz", "cups"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_water_goal")
 }
