@@ -66,20 +66,17 @@ export async function POST(request: NextRequest) {
       options: ReportOptions;
     };
 
-    // Parse the date string as local date (YYYY-MM-DD)
-    // This avoids timezone conversion issues
+    // FIX: Parse the date string as local date (YYYY-MM-DD)
     const [year, month, day] = date.split("-").map(Number);
     const reportDate = new Date(year, month - 1, day);
 
-    // Create a date-only string for database comparison (YYYY-MM-DD)
-    const dateString = format(reportDate, "yyyy-MM-dd");
+    // FIX: For DATE columns, use date comparison directly (no timestamp conversion)
+    const dateOnly = new Date(year, month - 1, day);
 
-    // Create start and end of day for date range queries
-    // Using local time to avoid timezone shifts
-    const dayStart = new Date(`${dateString}T00:00:00.000`);
-    const dayEnd = new Date(`${dateString}T23:59:59.999`);
-
-    console.log(`report start: ${dayStart}\nreport end: ${dayEnd}`);
+    // FIX: For TIMESTAMP columns (like scheduledDate), create proper day boundaries
+    // Use the local date and time to avoid timezone shifts
+    const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
 
     // Fetch user details
     const user = await prisma.user.findUnique({
@@ -105,14 +102,12 @@ export async function POST(request: NextRequest) {
     };
 
     // Fetch weight entry if requested
+    // FIX: Use exact date match for DATE columns
     if (options.includeWeight) {
       const weightEntry = await prisma.weight.findFirst({
         where: {
           userId: session.user.id,
-          date: {
-            gte: dayStart,
-            lte: dayEnd,
-          },
+          date: dateOnly,
         },
         orderBy: { date: "desc" },
       });
@@ -127,11 +122,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch workouts if requested
+    // FIX: Query by scheduledDate (which is TIMESTAMP) for scheduled workouts
+    // This gets workouts scheduled for the day, regardless of completion
     if (options.includeWorkouts) {
       const workouts = await prisma.workoutInstance.findMany({
         where: {
           userId: session.user.id,
-          completedDate: {
+          scheduledDate: {
             gte: dayStart,
             lte: dayEnd,
           },
@@ -167,14 +164,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch diet entries if requested
+    // FIX: Use exact date match for DATE columns
     if (options.includeDiet) {
       const dietEntries = await prisma.dietEntry.findMany({
         where: {
           userId: session.user.id,
-          date: {
-            gte: dayStart,
-            lte: dayEnd,
-          },
+          date: dateOnly,
         },
         include: {
           food: true,
@@ -214,14 +209,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch water intake if requested
+    // FIX: Use exact date match for DATE columns
     if (options.includeWater) {
       const waterEntries = await prisma.waterEntry.findMany({
         where: {
           userId: session.user.id,
-          date: {
-            gte: dayStart,
-            lte: dayEnd,
-          },
+          date: dateOnly,
         },
       });
 
@@ -249,6 +242,7 @@ export async function POST(request: NextRequest) {
 
     // Generate markdown
     const markdown = generateMarkdown(reportData, options);
+    const dateString = format(reportDate, "yyyy-MM-dd");
     const filename = `fitness-report-${dateString}.md`;
 
     return NextResponse.json({
@@ -329,7 +323,7 @@ function generateMarkdown(data: ReportData, options: ReportOptions): string {
         });
       });
     } else {
-      lines.push("*No workouts completed this day.*");
+      lines.push("*No workouts scheduled for this day.*");
       lines.push("");
     }
   }
