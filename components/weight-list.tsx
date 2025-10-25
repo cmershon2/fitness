@@ -88,11 +88,13 @@ export default function WeightList({
                                         </span>
                                     </div>
                                     <p className="text-sm text-muted-foreground mt-1">
+                                        {/* FIX: Added timeZone: "UTC" to prevent date shift */}
                                         {new Date(weight.date).toLocaleDateString("en-US", {
                                             weekday: "long",
                                             year: "numeric",
                                             month: "long",
                                             day: "numeric",
+                                            timeZone: "UTC",
                                         })}
                                     </p>
                                     {weight.notes && (
@@ -122,7 +124,7 @@ export default function WeightList({
             </div>
 
             {/* Edit Dialog */}
-            <Dialog open={!!editingWeight} onOpenChange={() => setEditingWeight(null)}>
+            <Dialog open={!!editingWeight} onOpenChange={(open) => !open && setEditingWeight(null)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Edit Weight Entry</DialogTitle>
@@ -141,13 +143,12 @@ export default function WeightList({
             </Dialog>
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
+            <Dialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Delete Weight Entry</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete this weight entry? This action
-                            cannot be undone.
+                            Are you sure you want to delete this weight entry? This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

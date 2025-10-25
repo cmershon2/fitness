@@ -25,8 +25,9 @@ export async function GET(request: Request) {
       );
     }
 
-    const date = new Date(dateParam);
-    date.setHours(0, 0, 0, 0);
+    // FIX: Parse date string as local date without timezone conversion
+    const [year, month, day] = dateParam.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
 
     const entries = await prisma.waterEntry.findMany({
       where: {
@@ -100,8 +101,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid unit" }, { status: 400 });
     }
 
-    const entryDate = date ? new Date(date) : new Date();
-    entryDate.setHours(0, 0, 0, 0);
+    // FIX: Parse date string correctly to avoid timezone issues
+    let entryDate: Date;
+    if (date) {
+      // Parse YYYY-MM-DD as local date (not UTC)
+      const [year, month, day] = date.split("-").map(Number);
+      entryDate = new Date(year, month - 1, day);
+    } else {
+      // Use current local date
+      entryDate = new Date();
+      entryDate.setHours(0, 0, 0, 0);
+    }
 
     const entry = await prisma.waterEntry.create({
       data: {

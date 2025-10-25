@@ -1,3 +1,4 @@
+// app/api/weights/route.ts
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -54,12 +55,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // FIX: Parse date correctly to avoid timezone issues
+    let entryDate: Date;
+    if (date) {
+      // Parse YYYY-MM-DD as local date (not UTC)
+      const [year, month, day] = date.split("-").map(Number);
+      entryDate = new Date(year, month - 1, day);
+    } else {
+      // Use current local date
+      entryDate = new Date();
+    }
+
     const weightEntry = await prisma.weight.create({
       data: {
         userId: session.user.id,
         weight: parseFloat(weight),
         unit,
-        date: date ? new Date(date) : new Date(),
+        date: entryDate,
         notes: notes || null,
       },
     });

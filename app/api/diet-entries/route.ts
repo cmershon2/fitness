@@ -25,8 +25,9 @@ export async function GET(request: Request) {
       );
     }
 
-    const date = new Date(dateParam);
-    date.setHours(0, 0, 0, 0);
+    // FIX: Parse date string as local date without timezone conversion
+    const [year, month, day] = dateParam.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
 
     const entries = await prisma.dietEntry.findMany({
       where: {
@@ -124,8 +125,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Food not found" }, { status: 404 });
     }
 
-    const entryDate = new Date(date);
-    entryDate.setHours(0, 0, 0, 0);
+    // FIX: Parse date string correctly to avoid timezone issues
+    const [year, month, day] = date.split("-").map(Number);
+    const entryDate = new Date(year, month - 1, day);
 
     const entry = await prisma.dietEntry.create({
       data: {

@@ -79,6 +79,8 @@ export async function POST(request: NextRequest) {
     const dayStart = new Date(`${dateString}T00:00:00.000`);
     const dayEnd = new Date(`${dateString}T23:59:59.999`);
 
+    console.log(`report start: ${dayStart}\nreport end: ${dayEnd}`);
+
     // Fetch user details
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
       const workouts = await prisma.workoutInstance.findMany({
         where: {
           userId: session.user.id,
-          scheduledDate: {
+          completedDate: {
             gte: dayStart,
             lte: dayEnd,
           },
@@ -327,7 +329,7 @@ function generateMarkdown(data: ReportData, options: ReportOptions): string {
         });
       });
     } else {
-      lines.push("*No workouts scheduled for this day.*");
+      lines.push("*No workouts completed this day.*");
       lines.push("");
     }
   }

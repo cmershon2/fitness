@@ -24,10 +24,10 @@ export async function GET(request: Request) {
     };
 
     if (date) {
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+      // FIX: Parse date string as local date without timezone conversion
+      const [year, month, day] = date.split("-").map(Number);
+      const startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
 
       where.scheduledDate = {
         gte: startDate,
