@@ -25,7 +25,6 @@ import {
     Edit,
     Trash2,
     Utensils,
-    Package,
     ChefHat,
 } from "lucide-react";
 

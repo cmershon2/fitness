@@ -1,6 +1,6 @@
 "use client";
 
-import { Scale, Dumbbell, CheckCircle2 } from "lucide-react";
+import { Scale, CheckCircle2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface WeightActivity {

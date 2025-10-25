@@ -14,7 +14,6 @@ import {
    Minus,
    Calendar,
    Play,
-   CheckCircle2,
    Apple,
    Utensils,
    Clock,
@@ -153,7 +152,7 @@ export default function DashboardPage() {
          <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">
-               Welcome back! Here's your fitness overview for today.
+               Welcome back! Here&apos;s your fitness overview for today.
             </p>
          </div>
 
@@ -165,7 +164,7 @@ export default function DashboardPage() {
                      <div>
                         <CardTitle className="flex items-center gap-2">
                            <Clock className="h-5 w-5 text-primary" />
-                           Today's Workouts
+                           Today&apos;s Workouts
                         </CardTitle>
                         <CardDescription className="mt-1">
                            {data.todaysWorkouts.length} workout{data.todaysWorkouts.length > 1 ? "s" : ""} scheduled

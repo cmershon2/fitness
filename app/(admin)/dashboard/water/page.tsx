@@ -434,7 +434,7 @@ export default function WaterPage() {
             {/* Entry History */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Today's Entries</CardTitle>
+                    <CardTitle>Today&apos;s Entries</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {loading ? (

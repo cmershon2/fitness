@@ -173,7 +173,7 @@ export default function WorkoutsPage() {
                             <div>
                                 <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
                                     <Clock className="h-5 w-5 text-primary" />
-                                    Today's Workout
+                                    Today&apos;s Workout
                                 </CardTitle>
                                 <CardDescription className="text-xs sm:text-sm mt-1">
                                     {format(new Date(), "EEEE, MMMM d, yyyy")}
