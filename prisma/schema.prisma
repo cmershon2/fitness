@@ -25,6 +25,7 @@ model User {
   DietEntry       DietEntry[]
   WaterEntry      WaterEntry[]
   UserWaterGoal   UserWaterGoal[]
+  CompoundFood    CompoundFood[]
 
   @@map("user")
 }
@@ -189,22 +190,25 @@ model ExerciseSet {
 }
 
 model Food {
-  id          String      @id @default(uuid())
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  brand       String?
-  barcode     String?
-  calories    Int
-  protein     Float?
-  carbs       Float?
-  fat         Float?
-  servingSize String?
-  servingUnit String?
-  source      String      @default("manual") // "manual", "barcode", "api"
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  DietEntry   DietEntry[]
+  id              String                   @id @default(uuid())
+  userId          String
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  brand           String?
+  barcode         String?
+  calories        Int
+  protein         Float?
+  carbs           Float?
+  fat             Float?
+  servingSize     String?
+  servingUnit     String?
+  source          String                   @default("manual") // "manual", "barcode", "api", "compound"
+  isCompound      Boolean                  @default(false)
+  usedInCompounds CompoundFoodIngredient[]
+  compoundFood    CompoundFood?            @relation("FoodCompound")
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  DietEntry       DietEntry[]
 
   @@index([userId])
   @@index([barcode])
@@ -252,4 +256,35 @@ model UserWaterGoal {
   updatedAt DateTime @updatedAt
 
   @@map("user_water_goal")
+}
+
+model CompoundFood {
+  id          String                   @id @default(uuid())
+  userId      String
+  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodId      String?                  @unique
+  food        Food?                    @relation("FoodCompound", fields: [foodId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  servings    Float                    @default(1) // How many servings this recipe makes
+  ingredients CompoundFoodIngredient[]
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  @@index([userId])
+  @@map("compound_food")
+}
+
+model CompoundFoodIngredient {
+  id               String       @id @default(uuid())
+  compoundFoodId   String
+  compoundFood     CompoundFood @relation(fields: [compoundFoodId], references: [id], onDelete: Cascade)
+  ingredientFoodId String
+  ingredientFood   Food         @relation(fields: [ingredientFoodId], references: [id], onDelete: Cascade)
+  quantity         Float        @default(1) // Number of servings of the ingredient
+  createdAt        DateTime     @default(now())
+
+  @@index([compoundFoodId])
+  @@index([ingredientFoodId])
+  @@map("compound_food_ingredient")
 }

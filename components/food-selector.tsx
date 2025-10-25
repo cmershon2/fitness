@@ -25,14 +25,20 @@ interface Food {
     servingSize?: string;
     servingUnit?: string;
     source: string;
+    isCompound?: boolean;
 }
 
 interface FoodSelectorProps {
     onSelect: (food: Food) => void;
     triggerButton?: React.ReactNode;
+    excludeCompoundFoods?: boolean; // New prop to filter out compound foods
 }
 
-export default function FoodSelector({ onSelect, triggerButton }: FoodSelectorProps) {
+export default function FoodSelector({
+    onSelect,
+    triggerButton,
+    excludeCompoundFoods = false
+}: FoodSelectorProps) {
     const [foods, setFoods] = useState<Food[]>([]);
     const [search, setSearch] = useState("");
     const [open, setOpen] = useState(false);
@@ -52,7 +58,13 @@ export default function FoodSelector({ onSelect, triggerButton }: FoodSelectorPr
 
             const response = await fetch(`/api/foods?${params}`);
             if (response.ok) {
-                const data = await response.json();
+                let data = await response.json();
+
+                // Filter out compound foods if requested
+                if (excludeCompoundFoods) {
+                    data = data.filter((food: Food) => !food.isCompound);
+                }
+
                 setFoods(data);
             }
         } catch (error) {
