@@ -26,8 +26,20 @@ model User {
   WaterEntry      WaterEntry[]
   UserWaterGoal   UserWaterGoal[]
   CompoundFood    CompoundFood[]
+  UserPreferences UserPreferences[]
 
   @@map("user")
+}
+
+model UserPreferences {
+  userId            String   @id
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultWeightUnit String   @default("lb")
+  defaultWaterUnit  String   @default("oz")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("user_preferences")
 }
 
 model Session {
