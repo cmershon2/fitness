@@ -10,9 +10,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  telemetry: {
-    enabled: false,
-  },
+  telemetry: false,
 };
 
 export default nextConfig;

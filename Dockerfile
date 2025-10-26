@@ -6,7 +6,7 @@ FROM oven/bun:1 AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 COPY prisma ./prisma/
 
 # Install dependencies
