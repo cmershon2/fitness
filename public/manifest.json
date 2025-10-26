@@ -1,43 +1,43 @@
 {
-  "name": "Fitness Tracker",
-  "short_name": "Fitness",
-  "description": "Track your fitness journey - workouts, nutrition, hydration, and weight progress",
+  "name": "FitTrack",
+  "short_name": "FitTrack",
+  "description": "Track your fitness journey with workouts, nutrition, and progress monitoring",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
+  "theme_color": "#667eea",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-192x192.png",
@@ -49,7 +49,7 @@
       "src": "/icons/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-512x512.png",
@@ -57,5 +57,57 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Log Workout",
+      "short_name": "Workout",
+      "description": "Quickly log a workout",
+      "url": "/dashboard/workouts",
+      "icons": [
+        {
+          "src": "/icons/workout-icon.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Log Food",
+      "short_name": "Food",
+      "description": "Log your meals",
+      "url": "/dashboard/diet",
+      "icons": [
+        {
+          "src": "/icons/food-icon.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Log Water",
+      "short_name": "Water",
+      "description": "Track water intake",
+      "url": "/dashboard/water",
+      "icons": [
+        {
+          "src": "/icons/water-icon.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    },
+    {
+      "src": "/screenshots/workout.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ],
+  "prefer_related_applications": false
 }
