@@ -25,7 +25,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { User, Settings, Download, Trash2, Lock } from "lucide-react";
+import { User, Settings, Download, Trash2, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -271,31 +271,39 @@ export default function SettingsPage() {
                             <CardDescription>Update your personal information</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    value={profile.name || ""}
-                                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                                    placeholder="Your name"
-                                />
-                            </div>
+                            {isLoadingProfile ?
+                                <div className="flex h-full items-center justify-center">
+                                    <Loader2 className="h-8 w-8 animate-spin" />
+                                </div>
+                                :
+                                <>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name">Name</Label>
+                                        <Input
+                                            id="name"
+                                            value={profile.name || ""}
+                                            onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                                            placeholder="Your name"
+                                        />
+                                    </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    value={profile.email}
-                                    disabled
-                                    className="bg-muted"
-                                />
-                                <p className="text-sm text-muted-foreground">Email cannot be changed</p>
-                            </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">Email</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            value={profile.email}
+                                            disabled
+                                            className="bg-muted"
+                                        />
+                                        <p className="text-sm text-muted-foreground">Email cannot be changed</p>
+                                    </div>
 
-                            <Button onClick={updateProfile} disabled={isSaving}>
-                                {isSaving ? "Saving..." : "Save Changes"}
-                            </Button>
+                                    <Button onClick={updateProfile} disabled={isSaving}>
+                                        {isSaving ? "Saving..." : "Save Changes"}
+                                    </Button>
+                                </>
+                            }
                         </CardContent>
                     </Card>
 
@@ -365,46 +373,54 @@ export default function SettingsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="weight-unit">Weight Unit</Label>
-                                <Select
-                                    value={preferences.defaultWeightUnit}
-                                    onValueChange={(value) =>
-                                        setPreferences({ ...preferences, defaultWeightUnit: value })
-                                    }
-                                >
-                                    <SelectTrigger id="weight-unit">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="kg">Kilograms (kg)</SelectItem>
-                                        <SelectItem value="lbs">Pounds (lbs)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {isLoadingPreferences ?
+                                <div className="flex h-full items-center justify-center">
+                                    <Loader2 className="h-8 w-8 animate-spin" />
+                                </div>
+                                :
+                                <>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="weight-unit">Weight Unit</Label>
+                                        <Select
+                                            value={preferences.defaultWeightUnit}
+                                            onValueChange={(value) =>
+                                                setPreferences({ ...preferences, defaultWeightUnit: value })
+                                            }
+                                        >
+                                            <SelectTrigger id="weight-unit">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                                                <SelectItem value="lbs">Pounds (lbs)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="water-unit">Water Unit</Label>
-                                <Select
-                                    value={preferences.defaultWaterUnit}
-                                    onValueChange={(value) =>
-                                        setPreferences({ ...preferences, defaultWaterUnit: value })
-                                    }
-                                >
-                                    <SelectTrigger id="water-unit">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="ml">Milliliters (ml)</SelectItem>
-                                        <SelectItem value="oz">Ounces (oz)</SelectItem>
-                                        <SelectItem value="cups">Cups</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="water-unit">Water Unit</Label>
+                                        <Select
+                                            value={preferences.defaultWaterUnit}
+                                            onValueChange={(value) =>
+                                                setPreferences({ ...preferences, defaultWaterUnit: value })
+                                            }
+                                        >
+                                            <SelectTrigger id="water-unit">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="ml">Milliliters (ml)</SelectItem>
+                                                <SelectItem value="oz">Ounces (oz)</SelectItem>
+                                                <SelectItem value="cups">Cups</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                            <Button onClick={updatePreferences} disabled={isSaving}>
-                                {isSaving ? "Saving..." : "Save Preferences"}
-                            </Button>
+                                    <Button onClick={updatePreferences} disabled={isSaving}>
+                                        {isSaving ? "Saving..." : "Save Preferences"}
+                                    </Button>
+                                </>
+                            }
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -495,7 +511,7 @@ export default function SettingsPage() {
                                         (such as Google). Password management is handled by that provider.
                                     </p>
                                     <p className="text-sm text-muted-foreground mt-2">
-                                        To change your password, please visit your authentication provider's
+                                        To change your password, please visit your authentication provider&apos;s
                                         account settings.
                                     </p>
                                 </div>

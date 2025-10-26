@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
    Scale,
-   Dumbbell,
    Plus,
    TrendingUp,
    TrendingDown,
@@ -16,7 +15,6 @@ import {
    Droplets,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import WeightChart from "@/components/weight-chart";
 import RecentActivity from "@/components/recent-activity";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -94,7 +92,6 @@ interface DashboardData {
 export default function DashboardPage() {
    const [data, setData] = useState<DashboardData | null>(null);
    const [isLoading, setIsLoading] = useState(true);
-   const router = useRouter();
 
    useEffect(() => {
       fetchDashboardData();

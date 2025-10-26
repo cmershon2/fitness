@@ -7,7 +7,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Eye, Calendar as CalendarIcon, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -255,7 +254,7 @@ export default function ReportsPage() {
                             </div>
                         ) : (
                             <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                                No preview available. Click "Preview" to generate.
+                                No preview available. Click &quot;Preview&quot; to generate.
                             </div>
                         )}
                     </CardContent>

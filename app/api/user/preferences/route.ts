@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       }
     } catch (error) {
       // UserPreferences table doesn't exist yet - return defaults
-      console.log("UserPreferences table not found, returning defaults");
+      console.log("UserPreferences table not found, returning defaults", error);
     }
 
     // Return default preferences if no record exists or table doesn't exist

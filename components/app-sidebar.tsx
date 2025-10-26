@@ -6,7 +6,6 @@ import {
    Dumbbell,
    LayoutDashboard,
    Scale,
-   Play,
    Utensils,
    Droplets,
    Carrot,
