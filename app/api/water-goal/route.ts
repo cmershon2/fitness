@@ -22,10 +22,37 @@ export async function GET() {
     });
 
     if (!goal) {
-      // Return default goal if not set
+      // Fetch user preferences to get default water unit
+      let defaultWaterUnit = "ml"; // fallback default
+      let defaultGoalAmount = 2000; // fallback default in ml
+
+      try {
+        const preferences = await prisma.userPreferences.findUnique({
+          where: { userId: session.user.id },
+        });
+
+        if (preferences && preferences.defaultWaterUnit) {
+          defaultWaterUnit = preferences.defaultWaterUnit;
+
+          // Adjust default goal amount based on unit
+          if (defaultWaterUnit === "oz") {
+            defaultGoalAmount = 64; // ~1.9L in oz
+          } else if (defaultWaterUnit === "cups") {
+            defaultGoalAmount = 8; // ~1.9L in cups
+          }
+        }
+      } catch (error) {
+        // If UserPreferences table doesn't exist or there's an error, use defaults
+        console.log(
+          "Could not fetch user preferences, using default unit:",
+          error
+        );
+      }
+
+      // Return default goal with user's preferred unit
       return NextResponse.json({
-        dailyGoal: 2000,
-        unit: "ml",
+        dailyGoal: defaultGoalAmount,
+        unit: defaultWaterUnit,
       });
     }
 

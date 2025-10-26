@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,7 @@ export default function WeightEntryForm({
     initialData,
 }: WeightEntryFormProps) {
     const [weight, setWeight] = useState(initialData?.weight?.toString() || "");
-    const [unit, setUnit] = useState(initialData?.unit || "kg");
+    const [unit, setUnit] = useState(initialData?.unit || "");
     const [date, setDate] = useState(
         initialData?.date
             ? new Date(initialData.date).toISOString().split("T")[0]
@@ -40,6 +40,33 @@ export default function WeightEntryForm({
     );
     const [notes, setNotes] = useState(initialData?.notes || "");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingPreferences, setIsLoadingPreferences] = useState(!initialData);
+
+    // Fetch user preferences for default unit
+    useEffect(() => {
+        const fetchPreferences = async () => {
+            // Only fetch preferences if this is a new entry (no initialData)
+            if (initialData) {
+                return;
+            }
+
+            try {
+                const response = await fetch("/api/user/preferences");
+                if (response.ok) {
+                    const preferences = await response.json();
+                    setUnit(preferences.defaultWeightUnit || "kg");
+                }
+            } catch (error) {
+                console.error("Error fetching preferences:", error);
+                // Fall back to default if preferences can't be loaded
+                setUnit("kg");
+            } finally {
+                setIsLoadingPreferences(false);
+            }
+        };
+
+        fetchPreferences();
+    }, [initialData]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,6 +101,15 @@ export default function WeightEntryForm({
             setIsSubmitting(false);
         }
     };
+
+    // Show loading state while fetching preferences for new entries
+    if (isLoadingPreferences) {
+        return (
+            <div className="flex items-center justify-center p-4">
+                <p className="text-sm text-muted-foreground">Loading...</p>
+            </div>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -73,7 +73,7 @@ const unitLabels = {
 export default function WaterPage() {
     const [date, setDate] = useState<Date>(new Date());
     const [waterData, setWaterData] = useState<WaterData | null>(null);
-    const [goal, setGoal] = useState<WaterGoal>({ dailyGoal: 2000, unit: "ml" });
+    const [goal, setGoal] = useState<WaterGoal | null>(null);
     const [loading, setLoading] = useState(false);
     const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false);
     const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
@@ -85,9 +85,14 @@ export default function WaterPage() {
     const [newGoalUnit, setNewGoalUnit] = useState<string>("ml");
 
     useEffect(() => {
-        fetchWaterData();
         fetchWaterGoal();
-    }, [date]);
+    }, []);
+
+    useEffect(() => {
+        if (goal) {
+            fetchWaterData();
+        }
+    }, [date, goal]);
 
     const fetchWaterData = async () => {
         try {
@@ -103,7 +108,7 @@ export default function WaterPage() {
             setWaterData(data);
 
             // Check if goal was just completed
-            if (data.progress >= 100 && data.total > 0) {
+            if (data.progress >= 100 && data.total > 0 && goal) {
                 checkForCelebration(data.total);
             }
         } catch (error) {
@@ -128,18 +133,25 @@ export default function WaterPage() {
             setNewGoalUnit(data.unit);
         } catch (error) {
             console.error("Error fetching water goal:", error);
+            // Fallback to defaults if fetching fails
+            setGoal({ dailyGoal: 2000, unit: "ml" });
+            setNewGoalAmount("2000");
+            setNewGoalUnit("ml");
         }
     };
 
     const checkForCelebration = (newTotal: number) => {
         const prevTotal = waterData?.total || 0;
-        if (prevTotal < (goal.dailyGoal || 2000) && newTotal >= (goal.dailyGoal || 2000)) {
+        const goalAmount = goal?.dailyGoal || 2000;
+        if (prevTotal < goalAmount && newTotal >= goalAmount) {
             setShowCelebration(true);
             setTimeout(() => setShowCelebration(false), 3000);
         }
     };
 
     const handleQuickAdd = async (amount: number) => {
+        if (!goal) return;
+
         try {
             const response = await fetch("/api/water-entries", {
                 method: "POST",
@@ -166,6 +178,8 @@ export default function WaterPage() {
     };
 
     const handleCustomAdd = async () => {
+        if (!goal) return;
+
         if (!customAmount || parseFloat(customAmount) <= 0) {
             toast.error("Please enter a valid amount");
             return;
@@ -248,6 +262,15 @@ export default function WaterPage() {
         }
     };
 
+    // Show loading state while fetching initial goal
+    if (!goal) {
+        return (
+            <div className="flex items-center justify-center p-8">
+                <p className="text-sm text-muted-foreground">Loading...</p>
+            </div>
+        );
+    }
+
     const progressPercentage = Math.min(waterData?.progress || 0, 100);
 
     return (
@@ -311,19 +334,16 @@ export default function WaterPage() {
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsGoalDialogOpen(false)}>
-                                Cancel
-                            </Button>
                             <Button onClick={handleUpdateGoal}>Save Goal</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>
 
-            {/* Date Picker */}
+            {/* Date Selector */}
             <Card>
                 <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                         <Label>Date:</Label>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -332,12 +352,11 @@ export default function WaterPage() {
                                     {format(date, "PPP")}
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="w-auto p-0">
                                 <Calendar
                                     mode="single"
                                     selected={date}
                                     onSelect={(newDate) => newDate && setDate(newDate)}
-                                    initialFocus
                                 />
                             </PopoverContent>
                         </Popover>
@@ -352,22 +371,21 @@ export default function WaterPage() {
                         <Droplets className="h-5 w-5 text-blue-500" />
                         Daily Progress
                     </CardTitle>
+                    <CardDescription>
+                        {waterData?.total || 0} / {goal.dailyGoal} {unitLabels[goal.unit as keyof typeof unitLabels]}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">
-                                {waterData?.total || 0} / {goal.dailyGoal} {unitLabels[goal.unit as keyof typeof unitLabels]}
+                        <div className="flex justify-between text-sm">
+                            <span>{progressPercentage.toFixed(0)}%</span>
+                            <span className="text-muted-foreground">
+                                {Math.max(0, goal.dailyGoal - (waterData?.total || 0))}{" "}
+                                {unitLabels[goal.unit as keyof typeof unitLabels]} remaining
                             </span>
-                            <span className="text-muted-foreground">{progressPercentage}%</span>
                         </div>
-                        <Progress value={progressPercentage} className="h-4" />
+                        <Progress value={progressPercentage} className="h-3" />
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                        {progressPercentage >= 100
-                            ? "🎉 You've reached your daily goal!"
-                            : `${Math.round(goal.dailyGoal - (waterData?.total || 0))} ${unitLabels[goal.unit as keyof typeof unitLabels]} to go`}
-                    </p>
                 </CardContent>
             </Card>
 
@@ -375,27 +393,27 @@ export default function WaterPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Quick Add</CardTitle>
-                    <CardDescription>Tap to quickly log water intake</CardDescription>
+                    <CardDescription>Tap to log common amounts</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {quickAddAmounts[goal.unit as keyof typeof quickAddAmounts].map(
-                            (amount) => (
-                                <Button
-                                    key={amount}
-                                    variant="outline"
-                                    onClick={() => handleQuickAdd(amount)}
-                                    className="h-20 flex-col"
-                                >
-                                    <Droplets className="h-6 w-6 mb-2 text-blue-500" />
-                                    <span className="font-semibold">{amount}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                        {unitLabels[goal.unit as keyof typeof unitLabels]}
-                                    </span>
-                                </Button>
-                            )
-                        )}
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        {quickAddAmounts[goal.unit as keyof typeof quickAddAmounts].map((amount) => (
+                            <Button
+                                key={amount}
+                                onClick={() => handleQuickAdd(amount)}
+                                variant="outline"
+                                className="h-20 flex flex-col"
+                            >
+                                <Droplets className="h-6 w-6 mb-1 text-blue-500" />
+                                <span className="font-semibold">{amount}</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {unitLabels[goal.unit as keyof typeof unitLabels]}
+                                </span>
+                            </Button>
+                        ))}
                     </div>
+
+                    {/* Custom Amount Dialog */}
                     <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
                         <DialogTrigger asChild>
                             <Button variant="outline" className="w-full mt-3">
@@ -403,9 +421,12 @@ export default function WaterPage() {
                                 Custom Amount
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-md">
+                        <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Add Custom Amount</DialogTitle>
+                                <DialogDescription>
+                                    Enter a custom amount to log
+                                </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                                 <div className="space-y-2">

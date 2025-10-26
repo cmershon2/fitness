@@ -103,6 +103,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // Fetch user preferences to get default weight unit
+    let defaultWeightUnit = "kg"; // fallback default
+    try {
+      const preferences = await prisma.userPreferences.findUnique({
+        where: { userId: session.user.id },
+      });
+      if (preferences && preferences.defaultWeightUnit) {
+        defaultWeightUnit = preferences.defaultWeightUnit;
+      }
+    } catch (error) {
+      // If UserPreferences table doesn't exist or there's an error, use default
+      console.log(
+        "Could not fetch user preferences, using default unit:",
+        error
+      );
+    }
+
     // Create workout instance with snapshot of template data
     const instance = await prisma.workoutInstance.create({
       data: {
@@ -126,6 +143,7 @@ export async function POST(request: Request) {
                 targetReps: te.reps,
                 actualReps: null,
                 weight: null,
+                unit: defaultWeightUnit, // Use user's preferred weight unit
                 completed: false,
               })),
             },
