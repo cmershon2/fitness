@@ -1,3 +1,4 @@
+// app/api/dashboard/route.ts
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -13,62 +14,51 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get today's date at midnight (local time)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get today's weight
+    // Get today's weight entry
     const todayWeight = await prisma.weight.findFirst({
       where: {
         userId: session.user.id,
-        date: {
-          gte: today,
-          lt: tomorrow,
-        },
+        date: today,
       },
-      orderBy: { date: "desc" },
+      orderBy: { createdAt: "desc" },
     });
 
-    // Get latest weight if no weight today
-    const latestWeight = !todayWeight
-      ? await prisma.weight.findFirst({
+    // Get latest weight (if no weight today)
+    const latestWeight = todayWeight
+      ? null
+      : await prisma.weight.findFirst({
           where: { userId: session.user.id },
           orderBy: { date: "desc" },
-        })
-      : null;
+        });
 
-    // Get recent weight entries (last 7)
+    // Get recent weights for chart (last 7 entries)
     const recentWeights = await prisma.weight.findMany({
       where: { userId: session.user.id },
       orderBy: { date: "desc" },
       take: 7,
     });
 
-    // Get today's scheduled workouts (Sprint 3)
+    // Get today's workouts
     const todaysWorkouts = await prisma.workoutInstance.findMany({
       where: {
         userId: session.user.id,
-        scheduledDate: {
-          gte: today,
-          lt: tomorrow,
-        },
-        status: {
-          in: ["scheduled", "in-progress"],
-        },
+        scheduledDate: today,
       },
       include: {
         exercises: {
           include: {
             sets: true,
           },
-          orderBy: { orderIndex: "asc" },
         },
       },
-      orderBy: { scheduledDate: "asc" },
+      orderBy: { createdAt: "desc" },
     });
 
-    // Calculate workout progress for each workout
+    // Calculate workout progress
     const workoutsWithProgress = todaysWorkouts.map((workout) => {
       const totalSets = workout.exercises.reduce(
         (sum, exercise) => sum + exercise.sets.length,
@@ -89,6 +79,37 @@ export async function GET() {
         progressPercentage,
       };
     });
+
+    // Get today's diet entries and calculate total calories
+    const todaysDietEntries = await prisma.dietEntry.findMany({
+      where: {
+        userId: session.user.id,
+        date: today,
+      },
+      include: {
+        food: true,
+      },
+    });
+
+    const todayCalories = todaysDietEntries.reduce(
+      (sum, entry) => sum + entry.food.calories * entry.servings,
+      0
+    );
+
+    // Get today's water intake
+    const todaysWaterEntries = await prisma.waterEntry.findMany({
+      where: {
+        userId: session.user.id,
+        date: today,
+      },
+    });
+
+    const todayWater = todaysWaterEntries.reduce(
+      (sum, entry) => sum + entry.amount,
+      0
+    );
+
+    const waterUnit = todaysWaterEntries[0]?.unit || "oz";
 
     // Get total counts
     const [exerciseCount, templateCount, weightEntryCount, foodCount] =
@@ -144,6 +165,9 @@ export async function GET() {
       latestWeight,
       recentWeights,
       todaysWorkouts: workoutsWithProgress,
+      todayCalories: Math.round(todayCalories),
+      todayWater: Math.round(todayWater),
+      waterUnit,
       stats: {
         exercises: exerciseCount,
         templates: templateCount,

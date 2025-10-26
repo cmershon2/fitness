@@ -7,16 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import {
    Scale,
    Dumbbell,
-   ClipboardList,
    Plus,
    TrendingUp,
    TrendingDown,
    Minus,
    Calendar,
-   Play,
-   Apple,
    Utensils,
-   Clock,
+   Droplets,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -82,6 +79,9 @@ interface DashboardData {
       date: string;
    }>;
    todaysWorkouts: WorkoutInstance[];
+   todayCalories: number;
+   todayWater: number;
+   waterUnit: string;
    stats: {
       exercises: number;
       templates: number;
@@ -156,132 +156,51 @@ export default function DashboardPage() {
             </p>
          </div>
 
-         {/* Today's Workouts - Sprint 3 Feature */}
-         {data?.todaysWorkouts && data.todaysWorkouts.length > 0 && (
-            <Card className="border-primary/50 bg-primary/5">
-               <CardHeader>
-                  <div className="flex items-center justify-between">
-                     <div>
-                        <CardTitle className="flex items-center gap-2">
-                           <Clock className="h-5 w-5 text-primary" />
-                           Today&apos;s Workouts
-                        </CardTitle>
-                        <CardDescription className="mt-1">
-                           {data.todaysWorkouts.length} workout{data.todaysWorkouts.length > 1 ? "s" : ""} scheduled
-                        </CardDescription>
-                     </div>
-                     <Badge variant="default" className="flex-shrink-0">
-                        {data.todaysWorkouts.filter((w) => w.status === "scheduled").length} pending
-                     </Badge>
-                  </div>
-               </CardHeader>
-               <CardContent className="space-y-3">
-                  {data.todaysWorkouts.map((workout) => (
-                     <div
-                        key={workout.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border bg-background"
-                     >
-                        <div className="space-y-1 flex-1">
-                           <div className="flex items-center gap-2">
-                              <h3 className="font-semibold">{workout.name}</h3>
-                              <Badge
-                                 variant={workout.status === "scheduled" ? "secondary" : "default"}
-                                 className="text-xs"
-                              >
-                                 {workout.status === "scheduled" ? "Scheduled" : "In Progress"}
-                              </Badge>
-                           </div>
-                           <p className="text-sm text-muted-foreground">
-                              {workout.exercises.length} exercise{workout.exercises.length > 1 ? "s" : ""} • {workout.totalSets} total sets
-                           </p>
-                           {workout.status === "in-progress" && (
-                              <div className="flex items-center gap-2 mt-2">
-                                 <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                                    <div
-                                       className="h-full bg-primary transition-all"
-                                       style={{ width: `${workout.progressPercentage}%` }}
-                                    />
-                                 </div>
-                                 <span className="text-xs text-muted-foreground">
-                                    {workout.progressPercentage}%
-                                 </span>
-                              </div>
-                           )}
-                        </div>
-                        <Button
-                           onClick={() => router.push(`/dashboard/workouts/${workout.id}`)}
-                           size="sm"
-                           className="w-full sm:w-auto"
-                        >
-                           <Play className="h-4 w-4 mr-2" />
-                           {workout.status === "scheduled" ? "Start Workout" : "Continue"}
-                        </Button>
-                     </div>
-                  ))}
-                  <Button
-                     asChild
-                     variant="outline"
-                     className="w-full"
-                  >
-                     <Link href="/dashboard/workouts">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        View All Workouts
-                     </Link>
-                  </Button>
-               </CardContent>
-            </Card>
-         )}
-
-         {/* Stats Cards */}
-         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {/* Weight Card */}
+         {/* Top Stats Cards */}
+         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Today's Weight Card */}
             <Card>
                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                     {data?.todayWeight ? "Today's Weight" : "Latest Weight"}
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Today&apos;s Weight</CardTitle>
                   <Scale className="h-4 w-4 text-muted-foreground" />
                </CardHeader>
                <CardContent>
-                  {data?.todayWeight || data?.latestWeight ? (
-                     <div className="space-y-1">
-                        <div className="flex items-baseline gap-2">
-                           <div className="text-2xl font-bold">
-                              {(data.todayWeight || data.latestWeight)?.weight}
-                           </div>
-                           <div className="text-sm text-muted-foreground">
-                              {(data.todayWeight || data.latestWeight)?.unit}
-                           </div>
+                  {data?.todayWeight ? (
+                     <div>
+                        <div className="text-2xl font-bold">
+                           {data.todayWeight.weight} {data.todayWeight.unit}
                         </div>
                         {trend && (
-                           <div className="flex items-center gap-1 text-xs">
+                           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                               {trend.type === "up" && (
                                  <>
                                     <TrendingUp className="h-3 w-3 text-red-500" />
-                                    <span className="text-red-500">+{trend.diff.toFixed(1)}</span>
+                                    <span>+{trend.diff.toFixed(1)} from last entry</span>
                                  </>
                               )}
                               {trend.type === "down" && (
                                  <>
                                     <TrendingDown className="h-3 w-3 text-green-500" />
-                                    <span className="text-green-500">-{trend.diff.toFixed(1)}</span>
+                                    <span>-{trend.diff.toFixed(1)} from last entry</span>
                                  </>
                               )}
                               {trend.type === "stable" && (
                                  <>
-                                    <Minus className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-muted-foreground">No change</span>
+                                    <Minus className="h-3 w-3" />
+                                    <span>No change from last entry</span>
                                  </>
                               )}
                            </div>
                         )}
-                        {!data?.todayWeight && data?.latestWeight && (
-                           <p className="text-xs text-muted-foreground">
-                              {new Date(data.latestWeight.date).toLocaleDateString("en-US", {
-                                 timeZone: "UTC",
-                              })}
-                           </p>
-                        )}
+                     </div>
+                  ) : data?.latestWeight ? (
+                     <div>
+                        <div className="text-2xl font-bold">
+                           {data.latestWeight.weight} {data.latestWeight.unit}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                           Last recorded weight
+                        </p>
                      </div>
                   ) : (
                      <div className="space-y-2">
@@ -297,44 +216,32 @@ export default function DashboardPage() {
                </CardContent>
             </Card>
 
-            {/* Exercises Card */}
+            {/* Today's Calories Card */}
             <Card>
                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Exercises</CardTitle>
-                  <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Today&apos;s Calories</CardTitle>
+                  <Utensils className="h-4 w-4 text-muted-foreground" />
                </CardHeader>
                <CardContent>
-                  <div className="text-2xl font-bold">{data?.stats.exercises || 0}</div>
+                  <div className="text-2xl font-bold">{data?.todayCalories || 0} cal</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                     Total exercises created
+                     Total calories logged today
                   </p>
                </CardContent>
             </Card>
 
-            {/* Templates Card */}
+            {/* Today's Water Card */}
             <Card>
                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Templates</CardTitle>
-                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Today&apos;s Water</CardTitle>
+                  <Droplets className="h-4 w-4 text-muted-foreground" />
                </CardHeader>
                <CardContent>
-                  <div className="text-2xl font-bold">{data?.stats.templates || 0}</div>
+                  <div className="text-2xl font-bold">
+                     {data?.todayWater || 0} {data?.waterUnit || "oz"}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                     Workout templates
-                  </p>
-               </CardContent>
-            </Card>
-
-            {/* Foods Card - Sprint 3 Feature */}
-            <Card>
-               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Foods</CardTitle>
-                  <Apple className="h-4 w-4 text-muted-foreground" />
-               </CardHeader>
-               <CardContent>
-                  <div className="text-2xl font-bold">{data?.stats.foods || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                     Food items in library
+                     Water intake today
                   </p>
                </CardContent>
             </Card>
@@ -344,36 +251,85 @@ export default function DashboardPage() {
          <Card>
             <CardHeader>
                <CardTitle>Quick Actions</CardTitle>
+               <CardDescription>Common tasks and shortcuts</CardDescription>
             </CardHeader>
             <CardContent>
-               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <Button asChild variant="outline" className="h-auto flex-col gap-2 p-4">
                      <Link href="/dashboard/weight">
                         <Scale className="h-6 w-6" />
-                        <span className="font-medium">Log Weight</span>
-                     </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="h-auto flex-col gap-2 p-4">
-                     <Link href="/dashboard/exercises">
-                        <Dumbbell className="h-6 w-6" />
-                        <span className="font-medium">Add Exercise</span>
+                        <span className="text-sm font-medium">Log Weight</span>
                      </Link>
                   </Button>
                   <Button asChild variant="outline" className="h-auto flex-col gap-2 p-4">
                      <Link href="/dashboard/workouts">
                         <Calendar className="h-6 w-6" />
-                        <span className="font-medium">Schedule Workout</span>
+                        <span className="text-sm font-medium">Schedule Workout</span>
                      </Link>
                   </Button>
                   <Button asChild variant="outline" className="h-auto flex-col gap-2 p-4">
-                     <Link href="/dashboard/foods">
+                     <Link href="/dashboard/diet">
                         <Utensils className="h-6 w-6" />
-                        <span className="font-medium">Add Food</span>
+                        <span className="text-sm font-medium">Add Diet</span>
+                     </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="h-auto flex-col gap-2 p-4">
+                     <Link href="/dashboard/water">
+                        <Droplets className="h-6 w-6" />
+                        <span className="text-sm font-medium">Drink Water</span>
                      </Link>
                   </Button>
                </div>
             </CardContent>
          </Card>
+
+         {/* Today's Workouts */}
+         {data?.todaysWorkouts && data.todaysWorkouts.length > 0 && (
+            <Card>
+               <CardHeader>
+                  <CardTitle>Today&apos;s Workouts</CardTitle>
+                  <CardDescription>Scheduled for today</CardDescription>
+               </CardHeader>
+               <CardContent className="space-y-4">
+                  {data.todaysWorkouts.map((workout) => (
+                     <div
+                        key={workout.id}
+                        className="flex items-center justify-between border-b last:border-0 pb-3 last:pb-0"
+                     >
+                        <div className="space-y-1">
+                           <div className="flex items-center gap-2">
+                              <h4 className="font-medium">{workout.name}</h4>
+                              <Badge
+                                 variant={
+                                    workout.status === "completed"
+                                       ? "default"
+                                       : workout.status === "in-progress"
+                                          ? "secondary"
+                                          : "outline"
+                                 }
+                              >
+                                 {workout.status}
+                              </Badge>
+                           </div>
+                           <p className="text-sm text-muted-foreground">
+                              {workout.exercises.length} exercises • {workout.completedSets}/
+                              {workout.totalSets} sets completed ({workout.progressPercentage}%)
+                           </p>
+                        </div>
+                        <Button
+                           asChild
+                           size="sm"
+                           variant={workout.status === "completed" ? "outline" : "default"}
+                        >
+                           <Link href={`/dashboard/workouts/${workout.id}`}>
+                              {workout.status === "completed" ? "View" : "Continue"}
+                           </Link>
+                        </Button>
+                     </div>
+                  ))}
+               </CardContent>
+            </Card>
+         )}
 
          {/* Main Content Grid */}
          <div className="grid gap-6 lg:grid-cols-2">
