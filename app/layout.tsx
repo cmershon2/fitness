@@ -14,13 +14,13 @@ const notoSansKR = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "Fitness Tracker - Track Your Fitness Journey",
+  title: "FitTrack - Track Your Fitness Journey",
   description: "Track your workouts, nutrition, hydration, and weight progress with our comprehensive fitness tracking app",
-  applicationName: "Fitness Tracker",
+  applicationName: "FitTrack",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Fitness Tracker",
+    title: "FitTrack",
   },
   formatDetection: {
     telephone: false,
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   keywords: ['fitness', 'workout', 'nutrition', 'health', 'tracking', 'exercise'],
-  authors: [{ name: 'Fitness Tracker Team' }],
+  authors: [{ name: 'Casey Mershon' }],
 };
 
 export const viewport: Viewport = {

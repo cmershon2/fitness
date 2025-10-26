@@ -20,44 +20,6 @@ export function usePWA() {
       setIsInstalled(true);
     }
 
-    // Register service worker
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker
-          .register("/sw.js")
-          .then((registration) => {
-            console.log("Service Worker registered:", registration);
-
-            // Check for updates
-            registration.addEventListener("updatefound", () => {
-              const newWorker = registration.installing;
-              if (newWorker) {
-                newWorker.addEventListener("statechange", () => {
-                  if (
-                    newWorker.state === "installed" &&
-                    navigator.serviceWorker.controller
-                  ) {
-                    // New service worker available, prompt user to reload
-                    if (confirm("New version available! Reload to update?")) {
-                      newWorker.postMessage({ type: "SKIP_WAITING" });
-                      window.location.reload();
-                    }
-                  }
-                });
-              }
-            });
-          })
-          .catch((error) => {
-            console.error("Service Worker registration failed:", error);
-          });
-
-        // Listen for controller change
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          window.location.reload();
-        });
-      });
-    }
-
     // Listen for install prompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -113,22 +75,10 @@ export function usePWA() {
     setIsInstallable(false);
   };
 
-  const clearCache = async () => {
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: "CLEAR_CACHE" });
-      // Also clear any client-side caches
-      if ("caches" in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map((name) => caches.delete(name)));
-      }
-    }
-  };
-
   return {
     isInstallable,
     isInstalled,
     isOnline,
     installApp,
-    clearCache,
   };
 }
