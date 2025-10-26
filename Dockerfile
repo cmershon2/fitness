@@ -1,23 +1,22 @@
-# Dockerfile for Fitness Tracker App
+# Dockerfile for Fitness Tracker App (using Bun)
 # Multi-stage build for optimized production image
 
 # Stage 1: Dependencies
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
+FROM oven/bun:1 AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lockb ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN bun install --frozen-lockfile
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN bunx prisma generate
 
 # Stage 2: Builder
-FROM node:20-alpine AS builder
+FROM oven/bun:1 AS builder
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -29,7 +28,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 # Build the application
-RUN npm run build
+RUN bun run build
 
 # Stage 3: Runner (Production)
 FROM node:20-alpine AS runner
