@@ -36,11 +36,42 @@ interface ReportData {
     }>;
   }>;
   diet: {
-    breakfast: Array<{ foodName: string; servings: number; calories: number }>;
-    lunch: Array<{ foodName: string; servings: number; calories: number }>;
-    snack: Array<{ foodName: string; servings: number; calories: number }>;
-    dinner: Array<{ foodName: string; servings: number; calories: number }>;
+    breakfast: Array<{
+      foodName: string;
+      servings: number;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }>;
+    lunch: Array<{
+      foodName: string;
+      servings: number;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }>;
+    snack: Array<{
+      foodName: string;
+      servings: number;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }>;
+    dinner: Array<{
+      foodName: string;
+      servings: number;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }>;
     totalCalories: number;
+    totalProtein: number;
+    totalCarbs: number;
+    totalFat: number;
   };
   water?: {
     total: number;
@@ -66,14 +97,14 @@ export async function POST(request: NextRequest) {
       options: ReportOptions;
     };
 
-    // FIX: Parse the date string as local date (YYYY-MM-DD)
+    // Parse the date string as local date (YYYY-MM-DD)
     const [year, month, day] = date.split("-").map(Number);
     const reportDate = new Date(year, month - 1, day);
 
-    // FIX: For DATE columns, use date comparison directly (no timestamp conversion)
+    // For DATE columns, use date comparison directly (no timestamp conversion)
     const dateOnly = new Date(year, month - 1, day);
 
-    // FIX: For TIMESTAMP columns (like scheduledDate), create proper day boundaries
+    // For TIMESTAMP columns (like scheduledDate), create proper day boundaries
     // Use the local date and time to avoid timezone shifts
     const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
     const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
@@ -98,6 +129,9 @@ export async function POST(request: NextRequest) {
         snack: [],
         dinner: [],
         totalCalories: 0,
+        totalProtein: 0,
+        totalCarbs: 0,
+        totalFat: 0,
       },
     };
 
@@ -174,22 +208,28 @@ export async function POST(request: NextRequest) {
         include: {
           food: true,
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: {
+          createdAt: "asc",
+        },
       });
 
-      let totalCalories = 0;
-
+      // Process diet entries and calculate totals
       dietEntries.forEach((entry) => {
-        const calories = Math.round(entry.food.calories * entry.servings);
-        totalCalories += calories;
-
         const item = {
           foodName: entry.food.name,
           servings: entry.servings,
-          calories,
+          calories: entry.food.calories * entry.servings,
+          protein: (entry.food.protein || 0) * entry.servings,
+          carbs: (entry.food.carbs || 0) * entry.servings,
+          fat: (entry.food.fat || 0) * entry.servings,
         };
 
-        switch (entry.mealCategory.toLowerCase()) {
+        reportData.diet.totalCalories += item.calories;
+        reportData.diet.totalProtein += item.protein;
+        reportData.diet.totalCarbs += item.carbs;
+        reportData.diet.totalFat += item.fat;
+
+        switch (entry.mealCategory) {
           case "breakfast":
             reportData.diet.breakfast.push(item);
             break;
@@ -204,11 +244,9 @@ export async function POST(request: NextRequest) {
             break;
         }
       });
-
-      reportData.diet.totalCalories = totalCalories;
     }
 
-    // Fetch water intake if requested
+    // Fetch water entries if requested
     // FIX: Use exact date match for DATE columns
     if (options.includeWater) {
       const waterEntries = await prisma.waterEntry.findMany({
@@ -218,19 +256,19 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const waterGoal = await prisma.userWaterGoal.findUnique({
-        where: { userId: session.user.id },
-      });
-
       if (waterEntries.length > 0) {
         const total = waterEntries.reduce(
           (sum, entry) => sum + entry.amount,
           0
         );
-        const unit = waterEntries[0]?.unit || "ml";
+        const unit = waterEntries[0].unit;
+
+        const waterGoal = await prisma.userWaterGoal.findUnique({
+          where: { userId: session.user.id },
+        });
 
         reportData.water = {
-          total: Math.round(total),
+          total,
           unit,
           goal: waterGoal?.dailyGoal,
           progress: waterGoal
@@ -332,7 +370,10 @@ function generateMarkdown(data: ReportData, options: ReportOptions): string {
   if (options.includeDiet) {
     lines.push("## 🍎 Nutrition");
     lines.push("");
-    lines.push(`**Total Calories:** ${data.diet.totalCalories} cal`);
+    lines.push(`**Total Calories:** ${data.diet.totalCalories.toFixed(0)} cal`);
+    lines.push(`**Total Protein:** ${data.diet.totalProtein.toFixed(1)}g`);
+    lines.push(`**Total Carbs:** ${data.diet.totalCarbs.toFixed(1)}g`);
+    lines.push(`**Total Fat:** ${data.diet.totalFat.toFixed(1)}g`);
     lines.push("");
 
     const hasDietData =
@@ -347,7 +388,13 @@ function generateMarkdown(data: ReportData, options: ReportOptions): string {
         lines.push("");
         data.diet.breakfast.forEach((item) => {
           lines.push(
-            `- ${item.foodName}: ${item.servings} serving(s) — ${item.calories} cal`
+            `- ${item.foodName}: ${
+              item.servings
+            } serving(s) — ${item.calories.toFixed(
+              0
+            )} cal (P: ${item.protein.toFixed(1)}g, C: ${item.carbs.toFixed(
+              1
+            )}g, F: ${item.fat.toFixed(1)}g)`
           );
         });
         lines.push("");
@@ -358,7 +405,13 @@ function generateMarkdown(data: ReportData, options: ReportOptions): string {
         lines.push("");
         data.diet.lunch.forEach((item) => {
           lines.push(
-            `- ${item.foodName}: ${item.servings} serving(s) — ${item.calories} cal`
+            `- ${item.foodName}: ${
+              item.servings
+            } serving(s) — ${item.calories.toFixed(
+              0
+            )} cal (P: ${item.protein.toFixed(1)}g, C: ${item.carbs.toFixed(
+              1
+            )}g, F: ${item.fat.toFixed(1)}g)`
           );
         });
         lines.push("");
@@ -369,7 +422,13 @@ function generateMarkdown(data: ReportData, options: ReportOptions): string {
         lines.push("");
         data.diet.snack.forEach((item) => {
           lines.push(
-            `- ${item.foodName}: ${item.servings} serving(s) — ${item.calories} cal`
+            `- ${item.foodName}: ${
+              item.servings
+            } serving(s) — ${item.calories.toFixed(
+              0
+            )} cal (P: ${item.protein.toFixed(1)}g, C: ${item.carbs.toFixed(
+              1
+            )}g, F: ${item.fat.toFixed(1)}g)`
           );
         });
         lines.push("");
@@ -380,7 +439,13 @@ function generateMarkdown(data: ReportData, options: ReportOptions): string {
         lines.push("");
         data.diet.dinner.forEach((item) => {
           lines.push(
-            `- ${item.foodName}: ${item.servings} serving(s) — ${item.calories} cal`
+            `- ${item.foodName}: ${
+              item.servings
+            } serving(s) — ${item.calories.toFixed(
+              0
+            )} cal (P: ${item.protein.toFixed(1)}g, C: ${item.carbs.toFixed(
+              1
+            )}g, F: ${item.fat.toFixed(1)}g)`
           );
         });
         lines.push("");

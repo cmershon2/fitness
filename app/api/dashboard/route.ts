@@ -14,39 +14,42 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get today's date at midnight (local time)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const dayStart = new Date();
+    const dayEnd = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    dayEnd.setHours(23, 59, 59, 999);
 
-    // Get today's weight entry
+    // Get today's weight
     const todayWeight = await prisma.weight.findFirst({
       where: {
         userId: session.user.id,
-        date: today,
+        date: dayStart,
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    // Get latest weight (if no weight today)
-    const latestWeight = todayWeight
-      ? null
-      : await prisma.weight.findFirst({
+    // Get latest weight if no weight today
+    const latestWeight = !todayWeight
+      ? await prisma.weight.findFirst({
           where: { userId: session.user.id },
           orderBy: { date: "desc" },
-        });
+        })
+      : null;
 
-    // Get recent weights for chart (last 7 entries)
+    // Get recent weights for chart (last 10 entries)
     const recentWeights = await prisma.weight.findMany({
       where: { userId: session.user.id },
       orderBy: { date: "desc" },
-      take: 7,
+      take: 10,
     });
 
     // Get today's workouts
     const todaysWorkouts = await prisma.workoutInstance.findMany({
       where: {
         userId: session.user.id,
-        scheduledDate: today,
+        scheduledDate: {
+          gte: dayStart,
+          lte: dayEnd,
+        },
       },
       include: {
         exercises: {
@@ -61,14 +64,14 @@ export async function GET() {
     // Calculate workout progress
     const workoutsWithProgress = todaysWorkouts.map((workout) => {
       const totalSets = workout.exercises.reduce(
-        (sum, exercise) => sum + exercise.sets.length,
+        (sum, ex) => sum + ex.sets.length,
         0
       );
       const completedSets = workout.exercises.reduce(
-        (sum, exercise) =>
-          sum + exercise.sets.filter((set) => set.completed).length,
+        (sum, ex) => sum + ex.sets.filter((set) => set.completed).length,
         0
       );
+
       const progressPercentage =
         totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
 
@@ -80,11 +83,11 @@ export async function GET() {
       };
     });
 
-    // Get today's diet entries and calculate total calories
+    // Get today's diet entries and calculate total calories and macros
     const todaysDietEntries = await prisma.dietEntry.findMany({
       where: {
         userId: session.user.id,
-        date: today,
+        date: dayStart,
       },
       include: {
         food: true,
@@ -96,11 +99,27 @@ export async function GET() {
       0
     );
 
+    // Calculate macros
+    const todayProtein = todaysDietEntries.reduce(
+      (sum, entry) => sum + (entry.food.protein || 0) * entry.servings,
+      0
+    );
+
+    const todayCarbs = todaysDietEntries.reduce(
+      (sum, entry) => sum + (entry.food.carbs || 0) * entry.servings,
+      0
+    );
+
+    const todayFat = todaysDietEntries.reduce(
+      (sum, entry) => sum + (entry.food.fat || 0) * entry.servings,
+      0
+    );
+
     // Get today's water intake
     const todaysWaterEntries = await prisma.waterEntry.findMany({
       where: {
         userId: session.user.id,
-        date: today,
+        date: dayStart,
       },
     });
 
@@ -128,7 +147,7 @@ export async function GET() {
         }),
       ]);
 
-    // Get recent activities (last 5 weight entries + recent workouts)
+    // Get recent activities (last 3 weight entries + last 2 workouts)
     const recentWeightActivities = await prisma.weight.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -165,8 +184,11 @@ export async function GET() {
       latestWeight,
       recentWeights,
       todaysWorkouts: workoutsWithProgress,
-      todayCalories: Math.round(todayCalories),
-      todayWater: Math.round(todayWater),
+      todayCalories,
+      todayProtein,
+      todayCarbs,
+      todayFat,
+      todayWater,
       waterUnit,
       stats: {
         exercises: exerciseCount,
