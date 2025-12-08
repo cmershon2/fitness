@@ -194,6 +194,8 @@ model ExerciseSet {
   actualReps         Int?
   weight             Float?
   unit               String           @default("kg") // "kg" or "lbs"
+  rpe                Float? // Rate of Perceived Exertion (1-10 scale)
+  notes              String? // User notes for this set
   completed          Boolean          @default(false)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
