@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Check, Loader2, Cloud, Plus, Minus } from "lucide-react";
+import { Check, Loader2, Plus, Minus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ExerciseSet {
@@ -19,8 +19,8 @@ interface ExerciseSet {
     actualReps: number | null;
     weight: number | null;
     unit: string;
-    rpe: number | null;        // NEW
-    notes: string | null;      // NEW
+    rpe: number | null;
+    notes: string | null;
     completed: boolean;
 }
 
@@ -71,15 +71,11 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
     const [isCompleting, setIsCompleting] = useState(false);
     const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
 
-    const pendingUpdates = useRef<Map<string, NodeJS.Timeout>>(new Map());
+    // Track local edits for each set (not yet saved to server)
+    const [localEdits, setLocalEdits] = useState<Map<string, Partial<ExerciseSet>>>(new Map());
 
     useEffect(() => {
         fetchWorkout();
-
-        return () => {
-            pendingUpdates.current.forEach(timer => clearTimeout(timer));
-            pendingUpdates.current.clear();
-        };
     }, [workoutId]);
 
     const fetchWorkout = async () => {
@@ -96,129 +92,87 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
         }
     };
 
-    const updateSetOptimistically = useCallback((setId: string, data: Partial<ExerciseSet>) => {
-        setWorkout(prev => {
-            if (!prev) return prev;
-
-            return {
-                ...prev,
-                exercises: prev.exercises.map(exercise => ({
-                    ...exercise,
-                    sets: exercise.sets.map(set =>
-                        set.id === setId
-                            ? { ...set, ...data }
-                            : set
-                    )
-                }))
-            };
+    // Update local state only (not saved to server yet)
+    const updateSetLocally = useCallback((setId: string, data: Partial<ExerciseSet>) => {
+        setLocalEdits(prev => {
+            const next = new Map(prev);
+            const existing = next.get(setId) || {};
+            next.set(setId, { ...existing, ...data });
+            return next;
         });
     }, []);
 
-    const updateSetDebounced = useCallback((setId: string, data: Partial<ExerciseSet>) => {
-        const existingTimer = pendingUpdates.current.get(setId);
-        if (existingTimer) {
-            clearTimeout(existingTimer);
+    // Get the current values for a set (merges server data with local edits)
+    const getSetValues = useCallback((set: ExerciseSet) => {
+        const edits = localEdits.get(set.id) || {};
+        return {
+            actualReps: edits.actualReps !== undefined ? edits.actualReps : set.actualReps,
+            weight: edits.weight !== undefined ? edits.weight : set.weight,
+            rpe: edits.rpe !== undefined ? edits.rpe : set.rpe,
+            notes: edits.notes !== undefined ? edits.notes : set.notes,
+        };
+    }, [localEdits]);
+
+    // Save set when checkbox is toggled
+    const toggleSetComplete = async (set: ExerciseSet, checked: boolean) => {
+        const currentValues = getSetValues(set);
+
+        // Validate required fields when completing
+        if (checked && (!currentValues.actualReps || !currentValues.weight)) {
+            toast.error("Please enter reps and weight before completing the set");
+            return;
         }
 
-        const timer = setTimeout(async () => {
-            setSavingSetIds(prev => new Set(prev).add(setId));
-
-            try {
-                const response = await fetch(`/api/exercise-sets/${setId}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(data),
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to update set");
-                }
-
-                const updatedSet = await response.json();
-
-                setWorkout(prev => {
-                    if (!prev) return prev;
-
-                    return {
-                        ...prev,
-                        exercises: prev.exercises.map(exercise => ({
-                            ...exercise,
-                            sets: exercise.sets.map(set =>
-                                set.id === setId
-                                    ? updatedSet
-                                    : set
-                            )
-                        }))
-                    };
-                });
-
-            } catch (error) {
-                toast.error("Failed to save changes");
-                console.error(error);
-                await fetchWorkout();
-            } finally {
-                setSavingSetIds(prev => {
-                    const next = new Set(prev);
-                    next.delete(setId);
-                    return next;
-                });
-                pendingUpdates.current.delete(setId);
-            }
-        }, 1500);
-
-        pendingUpdates.current.set(setId, timer);
-    }, []);
-
-    const updateSetImmediate = async (setId: string, data: Partial<ExerciseSet>) => {
-        updateSetOptimistically(setId, data);
-
-        const existingTimer = pendingUpdates.current.get(setId);
-        if (existingTimer) {
-            clearTimeout(existingTimer);
-            pendingUpdates.current.delete(setId);
-        }
-
-        setSavingSetIds(prev => new Set(prev).add(setId));
+        setSavingSetIds(prev => new Set(prev).add(set.id));
 
         try {
-            const response = await fetch(`/api/exercise-sets/${setId}`, {
+            const response = await fetch(`/api/exercise-sets/${set.id}`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify({
+                    completed: checked,
+                    actualReps: currentValues.actualReps,
+                    weight: currentValues.weight,
+                    rpe: currentValues.rpe ?? 5,
+                    notes: currentValues.notes,
+                }),
             });
 
             if (!response.ok) throw new Error("Failed to update set");
 
             const updatedSet = await response.json();
 
+            // Update workout state with saved data
             setWorkout(prev => {
                 if (!prev) return prev;
-
                 return {
                     ...prev,
                     exercises: prev.exercises.map(exercise => ({
                         ...exercise,
-                        sets: exercise.sets.map(set =>
-                            set.id === setId
-                                ? updatedSet
-                                : set
+                        sets: exercise.sets.map(s =>
+                            s.id === set.id ? updatedSet : s
                         )
                     }))
                 };
             });
 
+            // Clear local edits for this set
+            setLocalEdits(prev => {
+                const next = new Map(prev);
+                next.delete(set.id);
+                return next;
+            });
+
+            toast.success(checked ? "Set completed!" : "Set uncompleted");
         } catch (error) {
-            toast.error("Failed to save changes");
+            toast.error("Failed to save set");
             console.error(error);
-            await fetchWorkout();
         } finally {
             setSavingSetIds(prev => {
                 const next = new Set(prev);
-                next.delete(setId);
+                next.delete(set.id);
                 return next;
             });
         }
@@ -237,14 +191,6 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
     };
 
     const completeWorkout = async () => {
-        const pendingTimers = Array.from(pendingUpdates.current.keys());
-        if (pendingTimers.length > 0) {
-            toast.info("Saving changes...");
-            pendingUpdates.current.forEach(timer => clearTimeout(timer));
-            pendingUpdates.current.clear();
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-
         setIsCompleting(true);
         try {
             const response = await fetch(`/api/workout-instances/${workoutId}`, {
@@ -260,7 +206,6 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
             if (!response.ok) throw new Error("Failed to complete workout");
 
             toast.success("Workout completed! Great job!");
-
             await fetchWorkout();
         } catch (error) {
             toast.error("Failed to complete workout");
@@ -327,7 +272,8 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                         {exercise.sets.map((set) => {
                             const isSaving = savingSetIds.has(set.id);
                             const showNotes = expandedNotes.has(set.id);
-                            const currentRpe = set.rpe ?? 5;
+                            const currentValues = getSetValues(set);
+                            const currentRpe = currentValues.rpe ?? 5;
 
                             return (
                                 <div
@@ -339,10 +285,9 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                         <div className="flex items-center gap-2">
                                             <Checkbox
                                                 checked={set.completed}
+                                                disabled={isSaving}
                                                 onCheckedChange={(checked) => {
-                                                    updateSetImmediate(set.id, {
-                                                        completed: checked as boolean,
-                                                    });
+                                                    toggleSetComplete(set, checked as boolean);
                                                 }}
                                             />
                                             <Label className="text-base font-semibold">
@@ -353,7 +298,7 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                             </Badge>
                                         </div>
                                         {isSaving && (
-                                            <Cloud className="h-4 w-4 animate-pulse text-muted-foreground" />
+                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                         )}
                                     </div>
 
@@ -367,17 +312,13 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                                 id={`reps-${set.id}`}
                                                 type="number"
                                                 min="0"
-                                                value={set.actualReps ?? ""}
+                                                disabled={set.completed}
+                                                value={currentValues.actualReps ?? ""}
                                                 onChange={(e) => {
                                                     const value = e.target.value
                                                         ? parseInt(e.target.value)
                                                         : null;
-                                                    updateSetOptimistically(set.id, {
-                                                        actualReps: value,
-                                                    });
-                                                    updateSetDebounced(set.id, {
-                                                        actualReps: value,
-                                                    });
+                                                    updateSetLocally(set.id, { actualReps: value });
                                                 }}
                                                 placeholder="0"
                                             />
@@ -391,17 +332,13 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                                 type="number"
                                                 min="0"
                                                 step="0.5"
-                                                value={set.weight ?? ""}
+                                                disabled={set.completed}
+                                                value={currentValues.weight ?? ""}
                                                 onChange={(e) => {
                                                     const value = e.target.value
                                                         ? parseFloat(e.target.value)
                                                         : null;
-                                                    updateSetOptimistically(set.id, {
-                                                        weight: value,
-                                                    });
-                                                    updateSetDebounced(set.id, {
-                                                        weight: value,
-                                                    });
+                                                    updateSetLocally(set.id, { weight: value });
                                                 }}
                                                 placeholder="0"
                                             />
@@ -411,12 +348,12 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                     {/* RPE Slider */}
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <Label>RPE (Rate of Perceived Exertion)</Label>
+                                            <Label>RPE</Label>
                                             <div className="flex items-center gap-2">
                                                 <div
                                                     className={`w-8 h-8 rounded-full ${getRpeColor(
                                                         currentRpe
-                                                    )} flex items-center justify-center text-white text-sm font-bold`}
+                                                    )} flex items-center justify-center text-white font-bold text-sm`}
                                                 >
                                                     {currentRpe}
                                                 </div>
@@ -429,10 +366,10 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                             min={1}
                                             max={10}
                                             step={0.5}
+                                            disabled={set.completed}
                                             value={[currentRpe]}
                                             onValueChange={([value]) => {
-                                                updateSetOptimistically(set.id, { rpe: value });
-                                                updateSetDebounced(set.id, { rpe: value });
+                                                updateSetLocally(set.id, { rpe: value });
                                             }}
                                             className="w-full"
                                         />
@@ -443,18 +380,19 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                         </div>
                                     </div>
 
-                                    {/* Notes Section */}
+                                    {/* Notes */}
                                     <div className="space-y-2">
                                         {!showNotes ? (
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
+                                                disabled={set.completed}
                                                 onClick={() => toggleNotesField(set.id)}
                                                 className="w-full"
                                             >
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                {set.notes ? "Edit Note" : "Add Note"}
+                                                <Plus className="mr-2 h-4 w-4" />
+                                                Add Note
                                             </Button>
                                         ) : (
                                             <>
@@ -466,6 +404,7 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                                         type="button"
                                                         variant="ghost"
                                                         size="sm"
+                                                        disabled={set.completed}
                                                         onClick={() => toggleNotesField(set.id)}
                                                     >
                                                         <Minus className="h-4 w-4" />
@@ -473,15 +412,11 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                                 </div>
                                                 <Textarea
                                                     id={`notes-${set.id}`}
-                                                    value={set.notes ?? ""}
+                                                    disabled={set.completed}
+                                                    value={currentValues.notes ?? ""}
                                                     onChange={(e) => {
                                                         const value = e.target.value || null;
-                                                        updateSetOptimistically(set.id, {
-                                                            notes: value,
-                                                        });
-                                                        updateSetDebounced(set.id, {
-                                                            notes: value,
-                                                        });
+                                                        updateSetLocally(set.id, { notes: value });
                                                     }}
                                                     placeholder="e.g., Form felt good, slight lower back tightness"
                                                     rows={3}
