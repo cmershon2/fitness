@@ -32,6 +32,8 @@ interface ReportData {
         weight: number | null;
         unit: string;
         completed: boolean;
+        rpe: number | null;
+        note: string | null;
       }>;
     }>;
   }>;
@@ -192,6 +194,8 @@ export async function POST(request: NextRequest) {
             weight: set.weight,
             unit: set.unit,
             completed: set.completed,
+            rpe: set.rpe,
+            note: set.notes,
           })),
         })),
       }));
@@ -350,9 +354,14 @@ function generateMarkdown(data: ReportData, options: ReportOptions): string {
               const actualReps = set.actualReps ?? "—";
               const weight = set.weight ? `@ ${set.weight} ${set.unit}` : "";
               const status = set.completed ? "✓" : "○";
+              const rpe = set.rpe ? `(RPE: ${set.rpe})` : "";
               lines.push(
-                `- ${status} Set ${set.setNumber}: ${actualReps} reps ${weight} (Target: ${set.targetReps})`
+                `- ${status} Set ${set.setNumber}: ${actualReps} reps ${weight} (Target: ${set.targetReps} reps) ${rpe}`
               );
+
+              if (set.note) {
+                lines.push(`    - Note: ${set.note}`);
+              }
             });
           } else {
             lines.push("*No sets logged*");

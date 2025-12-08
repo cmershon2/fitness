@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 
-// PATCH update an exercise set (log actual reps and weight)
+// PATCH update an exercise set (log actual reps, weight, RPE, and notes)
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -19,7 +19,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { actualReps, weight, unit, completed } = body;
+    const { actualReps, weight, unit, rpe, notes, completed } = body;
 
     // Verify ownership through the chain: set -> instance exercise -> workout instance -> user
     const existingSet = await prisma.exerciseSet.findUnique({
@@ -51,6 +51,8 @@ export async function PATCH(
     if (actualReps !== undefined) updateData.actualReps = actualReps;
     if (weight !== undefined) updateData.weight = weight;
     if (unit !== undefined) updateData.unit = unit;
+    if (rpe !== undefined) updateData.rpe = rpe;
+    if (notes !== undefined) updateData.notes = notes;
     if (completed !== undefined) updateData.completed = completed;
 
     const updated = await prisma.exerciseSet.update({

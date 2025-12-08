@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Check, Loader2, Cloud } from "lucide-react";
+import { Check, Loader2, Cloud, Plus, Minus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ExerciseSet {
@@ -17,6 +19,8 @@ interface ExerciseSet {
     actualReps: number | null;
     weight: number | null;
     unit: string;
+    rpe: number | null;        // NEW
+    notes: string | null;      // NEW
     completed: boolean;
 }
 
@@ -43,11 +47,29 @@ interface WorkoutExecutionProps {
     workoutId: string;
 }
 
+// Helper function to get RPE label
+const getRpeLabel = (value: number) => {
+    if (value <= 2) return "Very Easy";
+    if (value <= 4) return "Easy";
+    if (value <= 6) return "Moderate";
+    if (value <= 8) return "Hard";
+    return "Maximum Effort";
+};
+
+// Helper function to get RPE color
+const getRpeColor = (value: number) => {
+    if (value <= 4) return "bg-green-500";
+    if (value <= 6) return "bg-yellow-500";
+    if (value <= 8) return "bg-orange-500";
+    return "bg-red-500";
+};
+
 export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
     const [workout, setWorkout] = useState<WorkoutInstance | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [savingSetIds, setSavingSetIds] = useState<Set<string>>(new Set());
     const [isCompleting, setIsCompleting] = useState(false);
+    const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
 
     const pendingUpdates = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
@@ -202,6 +224,18 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
         }
     };
 
+    const toggleNotesField = (setId: string) => {
+        setExpandedNotes(prev => {
+            const next = new Set(prev);
+            if (next.has(setId)) {
+                next.delete(setId);
+            } else {
+                next.add(setId);
+            }
+            return next;
+        });
+    };
+
     const completeWorkout = async () => {
         const pendingTimers = Array.from(pendingUpdates.current.keys());
         if (pendingTimers.length > 0) {
@@ -260,7 +294,7 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                     <p className="text-sm text-muted-foreground">
                         {new Date(workout.scheduledDate).toLocaleDateString()}
                     </p>
-                    <p>{workout.description}</p>
+                    {workout.description && <p className="text-muted-foreground">{workout.description}</p>}
                 </div>
                 <Badge
                     variant={
@@ -270,164 +304,220 @@ export function WorkoutExecution({ workoutId }: WorkoutExecutionProps) {
                                 ? "secondary"
                                 : "outline"
                     }
-                    className="w-fit"
                 >
                     {workout.status}
                 </Badge>
             </div>
 
-            {workout.exercises.map((exercise, exIndex) => (
+            {workout.exercises.map((exercise) => (
                 <Card key={exercise.id}>
-                    <CardHeader className="pb-3">
-                        <div className="flex flex-col gap-2">
-                            <CardTitle className="text-lg sm:text-xl">
-                                {exIndex + 1}. {exercise.exerciseName}
-                            </CardTitle>
-                            {exercise.muscleGroup && (
-                                <div className="flex flex-wrap gap-1.5">
-                                    {exercise.muscleGroup.split(',').map((muscle, idx) => (
-                                        <Badge
-                                            key={idx}
-                                            variant="outline"
-                                            className="text-xs"
-                                        >
-                                            {muscle.trim()}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        {exercise.notes && (
-                            <p className="text-sm text-muted-foreground mt-2">{exercise.notes}</p>
-                        )}
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                            <div>
+                                <div>{exercise.exerciseName}</div>
+                                {exercise.muscleGroup && (
+                                    <div className="text-sm font-normal text-muted-foreground">
+                                        {exercise.muscleGroup}
+                                    </div>
+                                )}
+                            </div>
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2.5">
-                        {exercise.sets.map((set) => (
-                            <SetRow
-                                key={set.id}
-                                set={set}
-                                isSaving={savingSetIds.has(set.id)}
-                                onChangeOptimistic={(data) => updateSetOptimistically(set.id, data)}
-                                onChangeDebounced={(data) => updateSetDebounced(set.id, data)}
-                                onChangeImmediate={(data) => updateSetImmediate(set.id, data)}
-                                disabled={workout.status === "completed"}
-                            />
-                        ))}
+                    <CardContent className="space-y-4">
+                        {exercise.sets.map((set) => {
+                            const isSaving = savingSetIds.has(set.id);
+                            const showNotes = expandedNotes.has(set.id);
+                            const currentRpe = set.rpe ?? 5;
+
+                            return (
+                                <div
+                                    key={set.id}
+                                    className="space-y-3 rounded-lg border p-4"
+                                >
+                                    {/* Set Header */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                checked={set.completed}
+                                                onCheckedChange={(checked) => {
+                                                    updateSetImmediate(set.id, {
+                                                        completed: checked as boolean,
+                                                    });
+                                                }}
+                                            />
+                                            <Label className="text-base font-semibold">
+                                                Set {set.setNumber}
+                                            </Label>
+                                            <Badge variant="outline" className="text-xs">
+                                                Target: {set.targetReps} reps
+                                            </Badge>
+                                        </div>
+                                        {isSaving && (
+                                            <Cloud className="h-4 w-4 animate-pulse text-muted-foreground" />
+                                        )}
+                                    </div>
+
+                                    {/* Reps and Weight */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                            <Label htmlFor={`reps-${set.id}`}>
+                                                Actual Reps
+                                            </Label>
+                                            <Input
+                                                id={`reps-${set.id}`}
+                                                type="number"
+                                                min="0"
+                                                value={set.actualReps ?? ""}
+                                                onChange={(e) => {
+                                                    const value = e.target.value
+                                                        ? parseInt(e.target.value)
+                                                        : null;
+                                                    updateSetOptimistically(set.id, {
+                                                        actualReps: value,
+                                                    });
+                                                    updateSetDebounced(set.id, {
+                                                        actualReps: value,
+                                                    });
+                                                }}
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor={`weight-${set.id}`}>
+                                                Weight ({set.unit})
+                                            </Label>
+                                            <Input
+                                                id={`weight-${set.id}`}
+                                                type="number"
+                                                min="0"
+                                                step="0.5"
+                                                value={set.weight ?? ""}
+                                                onChange={(e) => {
+                                                    const value = e.target.value
+                                                        ? parseFloat(e.target.value)
+                                                        : null;
+                                                    updateSetOptimistically(set.id, {
+                                                        weight: value,
+                                                    });
+                                                    updateSetDebounced(set.id, {
+                                                        weight: value,
+                                                    });
+                                                }}
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* RPE Slider */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label>RPE (Rate of Perceived Exertion)</Label>
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className={`w-8 h-8 rounded-full ${getRpeColor(
+                                                        currentRpe
+                                                    )} flex items-center justify-center text-white text-sm font-bold`}
+                                                >
+                                                    {currentRpe}
+                                                </div>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {getRpeLabel(currentRpe)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <Slider
+                                            min={1}
+                                            max={10}
+                                            step={0.5}
+                                            value={[currentRpe]}
+                                            onValueChange={([value]) => {
+                                                updateSetOptimistically(set.id, { rpe: value });
+                                                updateSetDebounced(set.id, { rpe: value });
+                                            }}
+                                            className="w-full"
+                                        />
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>Very Easy</span>
+                                            <span>Moderate</span>
+                                            <span>Max Effort</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Notes Section */}
+                                    <div className="space-y-2">
+                                        {!showNotes ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => toggleNotesField(set.id)}
+                                                className="w-full"
+                                            >
+                                                <Plus className="h-4 w-4 mr-2" />
+                                                {set.notes ? "Edit Note" : "Add Note"}
+                                            </Button>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor={`notes-${set.id}`}>
+                                                        Notes (Optional)
+                                                    </Label>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => toggleNotesField(set.id)}
+                                                    >
+                                                        <Minus className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                                <Textarea
+                                                    id={`notes-${set.id}`}
+                                                    value={set.notes ?? ""}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value || null;
+                                                        updateSetOptimistically(set.id, {
+                                                            notes: value,
+                                                        });
+                                                        updateSetDebounced(set.id, {
+                                                            notes: value,
+                                                        });
+                                                    }}
+                                                    placeholder="e.g., Form felt good, slight lower back tightness"
+                                                    rows={3}
+                                                />
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </CardContent>
                 </Card>
             ))}
 
-            {workout.status !== "completed" && (
-                <Button
-                    onClick={completeWorkout}
-                    disabled={!allSetsCompleted || isCompleting}
-                    size="lg"
-                    className="w-full"
-                >
-                    {isCompleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    <Check className="mr-2 h-5 w-5" />
-                    Complete Workout
-                </Button>
-            )}
-        </div>
-    );
-}
-
-interface SetRowProps {
-    set: ExerciseSet;
-    isSaving: boolean;
-    onChangeOptimistic: (data: Partial<ExerciseSet>) => void;
-    onChangeDebounced: (data: Partial<ExerciseSet>) => void;
-    onChangeImmediate: (data: Partial<ExerciseSet>) => void;
-    disabled: boolean;
-}
-
-function SetRow({
-    set,
-    isSaving,
-    onChangeOptimistic,
-    onChangeDebounced,
-    onChangeImmediate,
-    disabled
-}: SetRowProps) {
-    const [actualReps, setActualReps] = useState(set.actualReps?.toString() || "");
-    const [weight, setWeight] = useState(set.weight?.toString() || "");
-
-    useEffect(() => {
-        setActualReps(set.actualReps?.toString() || "");
-        setWeight(set.weight?.toString() || "");
-    }, [set.actualReps, set.weight]);
-
-    const handleRepsChange = (value: string) => {
-        setActualReps(value);
-        const reps = value ? parseInt(value) : null;
-        onChangeOptimistic({ actualReps: reps });
-        onChangeDebounced({ actualReps: reps });
-    };
-
-    const handleWeightChange = (value: string) => {
-        setWeight(value);
-        const weightValue = value ? parseFloat(value) : null;
-        onChangeOptimistic({ weight: weightValue });
-        onChangeDebounced({ weight: weightValue });
-    };
-
-    const handleCompletedChange = (checked: boolean) => {
-        onChangeImmediate({ completed: checked });
-    };
-
-    return (
-        <div className="flex flex-col sm:flex-row gap-2.5 p-3 rounded-lg border bg-muted/50">
-            {/* Mobile: Checkbox + Set number + Saving indicator in a row */}
-            <div className="flex items-center gap-2 sm:min-w-[70px]">
-                <Checkbox
-                    checked={set.completed}
-                    onCheckedChange={handleCompletedChange}
-                    disabled={disabled}
-                    className="h-5 w-5"
-                />
-                <Label className="font-semibold text-sm">
-                    Set {set.setNumber}
-                </Label>
-                {isSaving && (
-                    <Cloud className="h-3.5 w-3.5 text-muted-foreground animate-pulse ml-auto sm:ml-0" />
+            <Button
+                onClick={completeWorkout}
+                disabled={!allSetsCompleted || isCompleting || workout.status === "completed"}
+                className="w-full"
+                size="lg"
+            >
+                {isCompleting ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Completing...
+                    </>
+                ) : (
+                    <>
+                        <Check className="mr-2 h-4 w-4" />
+                        {workout.status === "completed"
+                            ? "Workout Completed"
+                            : allSetsCompleted
+                                ? "Complete Workout"
+                                : "Complete All Sets First"}
+                    </>
                 )}
-            </div>
-
-            {/* Mobile: Full width inputs in a grid */}
-            <div className="flex-1 grid grid-cols-2 gap-2.5 sm:gap-3">
-                <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground block">
-                        Reps
-                        <span className="text-[10px] ml-1">(Target: {set.targetReps})</span>
-                    </Label>
-                    <Input
-                        type="number"
-                        inputMode="numeric"
-                        value={actualReps}
-                        onChange={(e) => handleRepsChange(e.target.value)}
-                        placeholder={set.targetReps.toString()}
-                        disabled={disabled}
-                        className="h-11 text-base sm:h-10"
-                    />
-                </div>
-                <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground block">
-                        Weight
-                        <span className="text-[10px] ml-1">({set.unit})</span>
-                    </Label>
-                    <Input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.5"
-                        value={weight}
-                        onChange={(e) => handleWeightChange(e.target.value)}
-                        placeholder="0"
-                        disabled={disabled}
-                        className="h-11 text-base sm:h-10"
-                    />
-                </div>
-            </div>
+            </Button>
         </div>
     );
 }
